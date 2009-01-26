@@ -213,9 +213,14 @@ function content_complete_get_data($content_type) {
  *   Array of nodes with each node being an array of fields with their values.
  */
 function content_complete_get_user_fields($content_type) {
-  
-  // get all nodes of this cck type the user has edit permissions for	
-  if (user_access('edit any '. $content_type .' content')) {
+  // when using nodes for profiles we take the profile node of the current user
+  if (module_exists('content_profile') && is_content_profile($content_type)) {
+    global $user;
+    $sql = "SELECT * FROM {node} WHERE type = '%s' AND uid = %d";
+    $result = db_query($sql, $content_type, $user->uid);
+  }
+  // get all nodes of this cck type the user has edit permissions for
+  else if (user_access('edit any '. $content_type .' content')) {
     $sql = "SELECT * FROM {node} WHERE type = '%s'";
     $result = db_query(db_rewrite_sql($sql), $content_type);
   } 
@@ -228,6 +233,7 @@ function content_complete_get_user_fields($content_type) {
     return array();
   }
   
+  // reformat the content for each node 
   $fields = content_complete_get_fields($content_type); // all fields
   $nodes = array();
   while ($data = db_fetch_object($result)) {
