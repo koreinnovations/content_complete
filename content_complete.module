@@ -44,10 +44,7 @@ function content_complete_block($op = 'list', $delta = 0, $edit = array()) {
         $blocks = array();
         $types = content_complete_get_tagged_types();
         foreach ($types as $type => $name) {
-          $blocks[$type]['info'] = t('!name type content complete', array(
-            '!name' => $name 
-            )
-          );
+          $blocks[$type]['info'] = t('Content Complete: !name', array('!name' => $name));
           $blocks[$type]['cache'] = BLOCK_NO_CACHE;
         }
         return $blocks;
@@ -69,8 +66,6 @@ function content_complete_block($op = 'list', $delta = 0, $edit = array()) {
         return $block;
         break;
     }
-  } else {
-    
   }
 }
 
@@ -131,15 +126,21 @@ function content_complete_content_field_remove_form_submit($form, &$form_state) 
  * @see theme_content_complete_profile_percent_complete()
  * @param $content_type 
  *   The machine-readable name of the content type.
+ * @param $user
+ *   The user for which this data is asked. If not set the user that
+ *   is logged in will be used.
  * @return 
  *   An array of fields such as percentage complete, next field to be
  *   completed etc.
  */
-function content_complete_get_data($content_type) {
+function content_complete_get_data($content_type, &$user = NULL) {
+  if (!$user) {
+    global $user;
+  }
   
   $fields = content_complete_get_fields($content_type); // all fields
   $tagged_fields = content_complete_get_tagged_fields($content_type); // fields tagged for completed (can be empty)
-  $user_fields = content_complete_get_user_fields($content_type); // fields completed by the user (can be empty)  
+  $user_fields = content_complete_get_user_fields($content_type, $user); // fields completed by the user (can be empty)  
 
   /**
    * Only consider the first instance for now
@@ -212,21 +213,19 @@ function content_complete_get_data($content_type) {
  * @return 
  *   Array of nodes with each node being an array of fields with their values.
  */
-function content_complete_get_user_fields($content_type) {
+function content_complete_get_user_fields($content_type, &$user) {
   // when using nodes for profiles we take the profile node of the current user
   if (module_exists('content_profile') && is_content_profile($content_type)) {
-    global $user;
-    $sql = "SELECT * FROM {node} WHERE type = '%s' AND uid = %d";
-    $result = db_query($sql, $content_type, $user->uid);
+    $sql = "SELECT n.nid FROM {node} n WHERE type = '%s' AND uid = %d";
+    $result = db_query(db_rewrite_sql($sql), $content_type, $user->uid);
   }
   // get all nodes of this cck type the user has edit permissions for
   else if (user_access('edit any '. $content_type .' content')) {
-    $sql = "SELECT * FROM {node} WHERE type = '%s'";
+    $sql = "SELECT n.nid FROM {node} n WHERE type = '%s'";
     $result = db_query(db_rewrite_sql($sql), $content_type);
   } 
   else if (user_access('edit own '. $content_type .' content')) {
-    global $user;
-    $sql = "SELECT * FROM {node} WHERE type = '%s' AND uid = %d";
+    $sql = "SELECT n.nid FROM {node} n WHERE type = '%s' AND uid = %d";
     $result = db_query(db_rewrite_sql($sql), $content_type, $user->uid);
   } 
   else {
@@ -241,26 +240,26 @@ function content_complete_get_user_fields($content_type) {
     
     $node_fields = array();
     
-    foreach ($fields as $code => $data) {
-      if (isset($node->{$code})) {
+    foreach ($fields as $field_name => $field_data) {
+      if (isset($node->{$field_name})) {
         
-        $raw = $node->{$code};
+        $raw = $node->{$field_name};
         $value = $raw;
         
-        if (isset($data['module'])) { // this is a CCK field
+        if (isset($field_data['module'])) { // this is a CCK field
           // we check for emptiness using the CCK hook hook_content_is_empty
-          $function = $data['module'] .'_content_is_empty';
+          $function = $field_data['module'] .'_content_is_empty';
           if (!isset($raw[0])) {
             $value = '';
           }
-          elseif (!$function($raw[0], $code)) {
+          elseif (!$function($raw[0], $field_name)) {
             $value = 'cck'; // a dummy value to flag this field has been set
           } 
           else {
             $value = ''; // field not set
           }
         }
-        elseif ($code == 'files') { // core node files field
+        elseif ($field_name == 'files') { // core node files field
           if (empty($raw)) {
             $value = '';
           }
@@ -269,7 +268,7 @@ function content_complete_get_user_fields($content_type) {
           }
         }
         
-        $node_fields[$code] = $value;
+        $node_fields[$field_name] = $value;
         $node_fields['nid'] = $node->nid;
       }
     }
@@ -291,7 +290,7 @@ function content_complete_get_user_fields($content_type) {
 function content_complete_get_tagged_fields($content_type) {
   $tagged = array();
   $sql = "SELECT field_name FROM {content_complete} WHERE type = '%s'";
-  $result = db_query(db_rewrite_sql($sql), $content_type);
+  $result = db_query($sql, $content_type);
   while ($data = db_fetch_object($result)) {
     $tagged[] = $data->field_name;
   }
@@ -310,7 +309,7 @@ function content_complete_get_tagged_types() {
      
   );
   $sql = "SELECT DISTINCT(type) FROM {content_complete}";
-  $result = db_query(db_rewrite_sql($sql));
+  $result = db_query($sql);
   while ($data = db_fetch_object($result)) {
     $tagged[$data->type] = $types[$data->type];
   }
@@ -428,10 +427,12 @@ function theme_content_complete_profile_percent_complete($complete_data) {
   $output .= '</div>';
   
   if ($complete_data['nextfield'] && $complete_data['nextpercent']) {
-    $output .= 'Filling out <i>'. l($complete_data['nextfield'], 'node/'. $complete_data['nid'] .'/edit', array(
-      'query' => 'content_complete_fieldname='. $complete_data['nextname'] 
-    )) .'</i> will bring '. $complete_data['name'] .' to '. t('!complete%.', array(
-      '!complete' => $complete_data['nextpercent'] 
+    $output .= t('Filling out <i>!nextfield</i> will bring !typename to !complete%.', array(
+      '!nextfield' => l($complete_data['nextfield'], 'node/'. $complete_data['nid'] .'/edit', array(
+        'query' => 'content_complete_fieldname='. $complete_data['nextname'] 
+      )),
+      '!typename' => $complete_data['name'],
+      '!complete' => $complete_data['nextpercent']
     ));
   }
   

@@ -13,7 +13,7 @@
  *  used to determine the completion of a users profile.
  */
 function content_complete_admin_settings() {
-  $header = t('Select one or more content types with their fields to check for completeness.');
+  $header = t('Select fields for the content types. Selected fields will be checked for completeness for that content type.');
   $form = drupal_get_form('content_complete_admin_settings_form');
   return $header . $form;
 }
@@ -25,38 +25,35 @@ function content_complete_admin_settings_form() {
   // get all content types
   $types = node_get_types('names');
   
-  $form = array(
-     
-  );
+  $form = array();
   foreach ($types as $content_type => $content_name) {
     $data = content_complete_admin_settings_form_data($content_type);
-    $type_set = (empty($data['default']['type'])) ? FALSE : TRUE;    
+    $type_set = empty($data['default']['type']) ? FALSE : TRUE;    
 
     $id = $content_type;
     
     $form[$id] = array(
-      '#title' => $content_name, '#type' => 'fieldset', // '#description' => 'Select CCK content type',
-    '#collapsible' => TRUE, '#collapsed' => ! $type_set 
+      '#title' => $content_name,
+      '#type' => 'fieldset',
+      '#description' => t('If one or more fields are selected, completeness checks will be run for this content type.'),
+      '#collapsible' => TRUE, 
+      '#collapsed' => ! $type_set 
     );
-    
-    $form[$id]['content'] = array(
-      '#type' => 'checkboxes', '#description' => t('If this content type is selected, completeness checks will be run on the fields selected below.'), '#options' => array(
-      $content_type => t($content_type) 
-    ), '#default_value' => $data['default']['type'] 
-    );
-    
+
     $form[$id]['fields'] = array(
-      '#type' => 'checkboxes', '#description' => t('Selected fields will be used in the check for completeness.'), '#options' => $data['options'], '#default_value' => $data['default']['fields'] 
+      '#type' => 'checkboxes', 
+      '#options' => $data['options'], 
+      '#default_value' => $data['default']['fields'] 
     );
   
   }
   
   $form['submit'] = array(
-    '#type' => 'submit', '#value' => t('Save') 
+    '#type' => 'submit', 
+    '#value' => t('Save') 
   );
   
   $form['#tree'] = TRUE; // return nested array of fields	
-  
 
   return $form;
 }
@@ -67,28 +64,24 @@ function content_complete_admin_settings_form() {
 function content_complete_admin_settings_form_submit($form, &$form_state) {
   if (is_array($form_state['values']) && ! empty($form_state['values'])) {
     db_query("DELETE FROM {content_complete}");
-    foreach ($form_state['values'] as $key => $value) {
-      
-      if (is_array($value) && isset($value['content']) && isset($value['fields'])) {
-        $content = array_filter($value['content']);
+    foreach ($form_state['values'] as $content_type => $value) {
+
+      if (is_array($value) && isset($value['fields'])) {
+        //$content = array_filter($value['content']);
         $fields = array_filter($value['fields']);
-        
-        if (! empty($content) && ! empty($fields)) {
-          $type = key($content);
-          foreach ($fields as $field) {
-            db_query("INSERT INTO {content_complete} VALUES ('%s', '%s')", $type, $field);
-          }
+
+        foreach ($fields as $field) {
+          db_query("INSERT INTO {content_complete} VALUES ('%s', '%s')", $content_type, $field);
         }
-      
+
       }
     }
-    
-    drupal_set_message("Your settings have been saved.");
+
+    drupal_set_message(t("Your settings have been saved."));
   }
 }
 
 function content_complete_admin_settings_form_data($content_type) {
-  
   /**
    * Get the fields for this content type
    */
@@ -97,9 +90,7 @@ function content_complete_admin_settings_form_data($content_type) {
   /**
    * Format for presentation
    */
-  $options = array(
-     
-  );
+  $options = array();
   foreach ($fields as $field_name => $field_data) {
     $key = $field_name;
     $label = $field_data['label'] ." <span class='description'>". $field_name ."</span>";
@@ -109,9 +100,7 @@ function content_complete_admin_settings_form_data($content_type) {
   /**
    * Put the default values
    */
-  $default_type = $default_fields = array(
-     
-  );
+  $default_type = $default_fields = array();
   $tagged_fields = content_complete_get_tagged_fields($content_type);
   if (! empty($tagged_fields)) {
     $default_type[] = $content_type;
