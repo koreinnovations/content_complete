@@ -412,6 +412,7 @@ function content_complete_theme() {
 function theme_content_complete_profile_percent_complete($complete_data) {  
   $id = $complete_data['type'];
 
+  // divide percentages in 4 regions of 25 each
   $leq_percent=0;
   while ($leq_percent<=100) {
     if ($complete_data['percent'] <= $leq_percent) break;
@@ -431,32 +432,15 @@ function theme_content_complete_profile_percent_complete($complete_data) {
   $output .= '<div id="cck-complete-percent-bar-'. $id .'" class="cck-complete-percent-bar cck-complete-percent-bar-leq-'. $leq_percent .' cck-complete-percent-bar-'. $complete_data['percent'] .'"></div>';
   $output .= '</div>';
   $output .= '</div>';
-  
-  if(!isset($complete_data['allprofiles']) && !$complete_data['allprofiles']){
-    if ($complete_data['nextfield'] && $complete_data['nextpercent']) {
-      $output .= t('Filling out <i>!nextfield</i> will bring !typename to !complete%.', array(
-          '!nextfield' => l($complete_data['nextfield'], 'node/'. $complete_data['nid'] .'/edit', array(
-          'query' => 'content_complete_fieldname='. $complete_data['nextname']
-                 )),
-          '!typename' => $complete_data['name'],
-          '!complete' => $complete_data['nextpercent']
-      ));
-    }
-  } else {
-    if(isset($complete_data['incomplete_fields'])){
-      foreach( $complete_data['incomplete_fields'] as $nid => $field_a ){
-        foreach( $field_a as $field_name => $name_a ){
-        	$sql = "SELECT percentage FROM {content_complete} WHERE field_name = '%s'";
-        	$result = db_query($sql, $field_name);
-        	while ($data = db_fetch_object($result)) {
-				$percentage = $data->percentage;
-			}
-          $output .= "<li>Fill out ";
-          $output .= l($name_a['readable_name'], "node/$nid/edit");
-          $output .= " (+ " . $percentage . "%)</li>";
-        }
-      }
-    }
+
+  if ($complete_data['nextfield'] && $complete_data['nextpercent']) {
+    $output .= t('Filling out <i>!nextfield</i> will bring !typename to !complete%.', array(
+      '!nextfield' => l($complete_data['nextfield'], 'node/'. $complete_data['nid'] .'/edit', array(
+        'query' => 'content_complete_fieldname='. $complete_data['nextname'] 
+      )),
+      '!typename' => $complete_data['name'],
+      '!complete' => $complete_data['nextpercent']
+    ));
   }
   
   return $output;
