@@ -193,11 +193,18 @@ function content_complete_get_data($content_type, &$user = NULL) {
   $complete_data['completed'] = $complete;
   $complete_data['incomplete'] = $incomplete;
   $complete_data['total'] = $total;
-  $complete_data['nextfield'] = $nextfield;
+  $complete_data['nextfield'] = t($nextfield);
   $complete_data['nextpercent'] = $nextpercent;
   $complete_data['nextname'] = $nextname;
   $complete_data['type'] = $content_type;
-  $complete_data['name'] = $type_names[$content_type]; // put human readble name
+  
+  // Put human readble name.
+  if (module_exists('i18ncontent')) {
+    $complete_data['name'] = tt("nodetype:type:$content_type:name", $type_names[$content_type]);
+  }
+  else {
+    $complete_data['name'] = $type_names[$content_type];
+  }
   
   return $complete_data;
 }
