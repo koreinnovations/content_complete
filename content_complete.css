@@ -1,0 +1,4 @@
+/* $Id$ */
+
+.cck-complete-percent-bar-wrapper { width: 100%; border: 1px solid #000; padding: 1px; }
+.cck-complete-percent-bar { height: 10px; background-color: #777777; }
