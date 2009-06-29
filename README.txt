@@ -67,6 +67,11 @@ CCK.
   leq-75 and leq-100. Absolute numbers can be styled using '.cck-complete-percent-bar-x'
   (with x replacing the actual percentage).
 
+* For styling, there are several classes and ids available. For example, you can use 
+  '.cck-complete-percent-bar-leq-25' to style the appearance of the percent bar if the 
+  percent is lower or equal (leq) to 25. Likewise, there are classes for leq-50,
+  leq-75 and leq-100. Absolute numbers can be styled using '.cck-complete-percent-bar-x'
+  (with x replacing the actual percentage).
 
 -- CUSTOMIZATION --
 
