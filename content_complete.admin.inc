@@ -24,8 +24,19 @@ function content_complete_admin_settings() {
 function content_complete_admin_settings_form() {
   // get all content types
   $types = node_get_types('names');
+    
+  $form['__general'] = array(
+    '#title' => t('General Settings'),
+    '#type' => 'fieldset',
+    '#collapsible' => FALSE,
+  );
+  $form['__general']['hide_complete'] = array(
+    '#title' => t('Hide the blocks when the percentage reaches 100%'),
+    '#type' => 'checkbox',
+    '#default_value' => variable_get('content_complete_hide_complete', TRUE),
+    '#description' => t('If you disable this feature, the blocks will be shown even when 100% has been reached.'),
+  );
   
-  $form = array();
   foreach ($types as $content_type => $content_name) {
     $data = content_complete_admin_settings_form_data($content_type);
     $type_set = empty($data['default']['type']) ? FALSE : TRUE;    
@@ -64,6 +75,7 @@ function content_complete_admin_settings_form() {
 function content_complete_admin_settings_form_submit($form, &$form_state) {
   if (is_array($form_state['values']) && ! empty($form_state['values'])) {
     db_query("DELETE FROM {content_complete}");
+        
     foreach ($form_state['values'] as $content_type => $value) {
 
       if (is_array($value) && isset($value['fields'])) {
@@ -76,7 +88,8 @@ function content_complete_admin_settings_form_submit($form, &$form_state) {
 
       }
     }
-
+    
+    variable_set('content_complete_hide_complete', $form_state['values']['__general']['hide_complete']);    
     drupal_set_message(t("Your settings have been saved."));
   }
 }

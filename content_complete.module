@@ -54,13 +54,20 @@ function content_complete_block($op = 'list', $delta = 0, $edit = array()) {
         $types = node_get_types('names');
         if (! isset($types[$type]))
           return;
-        $complete_data = content_complete_get_data($type);
+        
+        // use the current user as argument  
+        global $user;
+        // use the current node as argument if in node context
+        $node = (arg(0) == 'node' && is_numeric(arg(1))) ? node_load(arg(1)) : NULL;
+              
+        $complete_data = content_complete_get_data($type, $user, $node);
         $block['subject'] = t('!name', array(
           '!name' => $types[$type] 
           )
         );
-        // only display the block when 100% has not been reached
-        if (! empty($complete_data) && $complete_data['percent'] != 100) {
+              
+        if (! empty($complete_data) && 
+          ($complete_data['percent'] != 100 || ($complete_data['percent'] == 100 && !variable_get('content_complete_hide_complete', TRUE)))) {
           $block['content'] = theme('content_complete_profile_percent_complete', $complete_data);
         }
         return $block;
@@ -133,25 +140,13 @@ function content_complete_content_field_remove_form_submit($form, &$form_state) 
  *   An array of fields such as percentage complete, next field to be
  *   completed etc.
  */
-function content_complete_get_data($content_type, &$user = NULL) {
-  if (!$user) {
-    global $user;
-  }
-  
+function content_complete_get_data($content_type, &$user = NULL, &$node = NULL) {  
   $fields = content_complete_get_fields($content_type); // all fields
   $tagged_fields = content_complete_get_tagged_fields($content_type); // fields tagged for completed (can be empty)
-  $user_fields = content_complete_get_user_fields($content_type, $user); // fields completed by the user (can be empty)  
+  $user_fields = content_complete_get_user_fields($content_type, $user, $node); // fields completed by the user (can be empty)  
 
-  /**
-   * Only consider the first instance for now
-   */
-  if (is_array($user_fields) && !empty($user_fields)) {
-    $user_fields = $user_fields[0];
-  } 
-  else {
-    return array();
-  }
-  
+  if (empty($user_fields)) return array();
+    
   $percent = 0;
   $complete = 0;
   $incomplete = 0;
@@ -205,7 +200,8 @@ function content_complete_get_data($content_type, &$user = NULL) {
   $complete_data['nextpercent'] = $nextpercent;
   $complete_data['nextname'] = $nextname;
   $complete_data['type'] = $content_type;
-  
+  $complete_data['title'] = $user_fields['title'];
+    
   // Put human readble name.
   if (module_exists('i18ncontent')) {
     $complete_data['name'] = tt("nodetype:type:$content_type:name", $type_names[$content_type]);
@@ -213,7 +209,7 @@ function content_complete_get_data($content_type, &$user = NULL) {
   else {
     $complete_data['name'] = $type_names[$content_type];
   }
-  
+    
   return $complete_data;
 }
 
@@ -227,33 +223,18 @@ function content_complete_get_data($content_type, &$user = NULL) {
  *   The machine-readable name of the content type.
  * @return 
  *   Array of nodes with each node being an array of fields with their values.
- */
-function content_complete_get_user_fields($content_type, &$user) {
-  // when using nodes for profiles we take the profile node of the current user
-  if (module_exists('content_profile') && is_content_profile($content_type)) {
-    $sql = "SELECT n.nid FROM {node} n WHERE type = '%s' AND uid = %d";
-    $result = db_query(db_rewrite_sql($sql), $content_type, $user->uid);
-  }
-  // get all nodes of this cck type the user has edit permissions for
-  else if (user_access('edit any '. $content_type .' content')) {
-    $sql = "SELECT n.nid FROM {node} n WHERE type = '%s'";
-    $result = db_query(db_rewrite_sql($sql), $content_type);
-  } 
-  else if (user_access('edit own '. $content_type .' content')) {
-    $sql = "SELECT n.nid FROM {node} n WHERE type = '%s' AND uid = %d";
-    $result = db_query(db_rewrite_sql($sql), $content_type, $user->uid);
-  } 
-  else {
-    return array();
-  }
-  
-  // reformat the content for each node 
-  $fields = content_complete_get_fields($content_type); // all fields
-  $nodes = array();
-  while ($data = db_fetch_object($result)) {
-    $node = node_load($data->nid);
+ */ 
+function content_complete_get_user_fields($content_type, &$user, &$node) {
+  $nid = _content_complete_get_nid($content_type, &$user, &$node);
     
-    $node_fields = array();
+  // reformat the content for each node 
+  $fields = content_complete_get_fields($content_type); // all fields    
+    
+  $node_fields = array();
+  
+  if($nid) {        
+    $node = node_load($nid);
+    $node_fields['nid'] = $node->nid;
     
     foreach ($fields as $field_name => $field_data) {
       if (isset($node->{$field_name})) {
@@ -284,14 +265,11 @@ function content_complete_get_user_fields($content_type, &$user) {
         }
         
         $node_fields[$field_name] = $value;
-        $node_fields['nid'] = $node->nid;
       }
-    }
-    
-    $nodes[] = $node_fields;
+    }    
   }
   
-  return $nodes;
+  return $node_fields;
 }
 
 /**
@@ -391,6 +369,66 @@ function content_complete_get_fields($content_type) {
   }
 
   return $fields;
+}
+
+/**
+ * Get the node id of the node to calculate completion for
+ * 
+ * Different situations:
+ *  - content_profile is enabled and given type is used
+ *    for profile
+ *      => use the node associated with the user
+ *  - user can edit all nodes of given type
+ *      => take the node that corresponds to the given node, or
+ *      => take the first node of the given type if no node
+ *         corresponds
+ *  - user can edit only his nodes of given type
+ *      => take the node that corresponds to the given node, or
+ *      => take the first node of the given type if no node
+ *         corresponds
+ */
+function _content_complete_get_nid($content_type, &$user, &$node) {  
+  $nid = 0;
+  
+  // when using content_profile we take the profile node of the current user
+  if (module_exists('content_profile') && is_content_profile($content_type)) {
+    $sql = "SELECT n.nid FROM {node} n WHERE type = '%s' AND uid = %d LIMIT 1";
+    $nid = db_result(db_query(db_rewrite_sql($sql), $content_type, $user->uid));
+  }
+  // get all nodes of this cck type the user has edit permissions for
+  else if (user_access('edit any '. $content_type .' content')) {
+    if (isset($node->nid)) {
+      $sql = "SELECT n.nid FROM {node} n WHERE type = '%s' AND nid = '%d'";
+      $nid = db_result(db_query(db_rewrite_sql($sql), $content_type, $node->nid));
+
+      if (!$nid) {
+        $sql = "SELECT n.nid FROM {node} n WHERE type = '%s' LIMIT 1";
+        $nid = db_result(db_query(db_rewrite_sql($sql), $content_type));
+      }
+    } 
+    else {
+      $sql = "SELECT n.nid FROM {node} n WHERE type = '%s' LIMIT 1";
+      $nid = db_result(db_query(db_rewrite_sql($sql), $content_type));
+    }
+  }
+  // get the user's own nodes of this cck type
+  else if (user_access('edit own '. $content_type .' content')) {
+    if (isset($node->nid)) {
+       $sql = "SELECT n.nid FROM {node} n WHERE type = '%s' AND uid = %d AND nid = '%d'";
+       $nid = db_result(db_query(db_rewrite_sql($sql), $content_type, $user->uid, $node->nid));
+
+       if (!$nid) {        
+         $sql = "SELECT n.nid FROM {node} n WHERE type = '%s' AND uid = %d LIMIT 1";
+         $nid = db_result(db_query(db_rewrite_sql($sql), $content_type, $user->uid));
+       }
+     } 
+     else {
+       $sql = "SELECT n.nid FROM {node} n WHERE type = '%s' AND uid = %d LIMIT 1";
+       $nid = db_result(db_query(db_rewrite_sql($sql), $content_type, $user->uid));
+     }
+  }
+  
+  return $nid;
 }
 
 /**

@@ -31,6 +31,18 @@ function content_complete_schema() {
   return $schema;
 }
 
+/**
+ * Add an extra option to hide or show the block when the completeness has reached 100%.
+ */
+function content_complete_update_6001() {
+  variable_set('content_complete_hide_complete', TRUE);
+  return array();
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
 function content_complete_uninstall() {
   drupal_uninstall_schema('content_complete');
+  variable_del('content_complete_hide_complete');
 }
