@@ -94,7 +94,7 @@ function content_complete_form_alter(&$form, $form_state, $form_id) {
   }
   
   // intercept all node edit forms and highlight field to be completed
-  if (empty($form_state['post']) && arg(2) == 'edit' && strpos($form_id, 'node_form') !== FALSE && $_GET['content_complete_fieldname'] != '') {
+  if (empty($form_state['post']) && arg(2) == 'edit' && strpos($form_id, 'node_form') !== FALSE && !empty($_GET['content_complete_fieldname'])) {
     $fieldname = $_GET['content_complete_fieldname'];
     form_set_error($fieldname, t('Please complete the fields.'));
   }
