@@ -18,23 +18,6 @@ function content_complete_perm() {
 }
 
 /**
- * Implementation of hook_menu()
- */
-function content_complete_menu() {  
-  $items['admin/settings/content_complete'] = array(
-    'title' => 'Content Complete', 
-    'description' => 'Tag CCK fields as required for percent complete handling.', 
-    'page callback' => 'content_complete_admin_settings', 
-    'access arguments' => array(
-      'administer content complete' 
-    ), 
-    'file' => 'content_complete.admin.inc'
-  );
-  
-  return $items;
-}
-
-/**
  * Implementation of hook_block()
  */
 function content_complete_block($op = 'list', $delta = 0, $edit = array()) {
@@ -42,34 +25,62 @@ function content_complete_block($op = 'list', $delta = 0, $edit = array()) {
     switch ($op) {
       case 'list':
         $blocks = array();
+        
+        // Block for completeness of a specific node
+        $blocks['content_complete_node']['info'] = t('Node completeness');
+        
+        // Block for completeness of a the whole content type
         $types = content_complete_get_tagged_types();
         foreach ($types as $type => $name) {
-          $blocks[$type]['info'] = t('Content Complete: !name', array('!name' => $name));
-          $blocks[$type]['cache'] = BLOCK_NO_CACHE;
+          $blocks['content_complete_type_'. $type]['info'] = t('Content type completeness: !type', array('!type' => $name));
         }
+        
         return $blocks;
         break;
-      case 'view':
-        $type = $delta;
-        $types = node_get_types('names');
-        if (! isset($types[$type]))
-          return;
         
-        // use the current user as argument  
-        global $user;
-        // use the current node as argument if in node context
-        $node = (arg(0) == 'node' && is_numeric(arg(1))) ? node_load(arg(1)) : NULL;
-              
-        $complete_data = content_complete_get_data($type, $user, $node);
-        $block['subject'] = t('!name', array(
-          '!name' => $types[$type] 
-          )
-        );
-              
-        if (! empty($complete_data) && 
-          ($complete_data['percent'] != 100 || ($complete_data['percent'] == 100 && !variable_get('content_complete_hide_complete', TRUE)))) {
-          $block['content'] = theme('content_complete_profile_percent_complete', $complete_data);
+      case 'view':
+        // Single node completeness (only displayed on full page view of the node)
+        if ($delta == 'content_complete_node' && arg(0) == 'node' && is_numeric(arg(1))) {
+          $node = menu_get_object();
+          if (variable_get('content_complete_'. $node->type, 0)) {
+            
+            $complete = content_complete_get_data($node);
+            if (!empty($complete) && $complete['percent'] != 100) {
+              $block['subject'] = t('Completeness');
+              $block['content'] = theme('content_complete_profile_percent_complete', $complete);
+            }
+          }
         }
+        
+        // Content type completeness
+        // $types = content_complete_get_tagged_types();
+        //         foreach ($types as $type => $name) {
+        //           if ($delta == 'content_complete_type_'. $type) { 
+        //             // When using nodes for profiles we take the profile node of the current user
+        //             if (module_exists('content_profile') && is_content_profile($content_type)) {
+        //               $sql = "SELECT n.nid FROM {node} n WHERE type = '%s' AND uid = %d";
+        //               $result = db_query(db_rewrite_sql($sql), $content_type, $user->uid);
+        //             }
+        //             // Get all nodes of this cck type the user has edit permissions for
+        //             else if (user_access('edit any '. $content_type .' content')) {
+        //               $sql = "SELECT n.nid FROM {node} n WHERE type = '%s'";
+        //               $result = db_query(db_rewrite_sql($sql), $content_type);
+        //             } 
+        //             else if (user_access('edit own '. $content_type .' content')) {
+        //               $sql = "SELECT n.nid FROM {node} n WHERE type = '%s' AND uid = %d";
+        //               $result = db_query(db_rewrite_sql($sql), $content_type, $user->uid);
+        //             }
+        //             if ($node = db_fetch_object($result)) {
+        //               $node = node_load($node->nid);
+        //               $complete = content_complete_get_data($node);
+        //               if (!empty($complete) && $complete['percent'] != 100) {
+        //                 $block['subject'] = t('Completeness');
+        //                 $block['content'] = theme('content_complete_profile_percent_complete', $complete);
+        //               }
+        //             }
+        //           }
+        //         }
+        
         return $block;
         break;
     }
@@ -83,20 +94,55 @@ function content_complete_block($op = 'list', $delta = 0, $edit = array()) {
  * @see content_complete_content_field_remove_form_submit()
  */
 function content_complete_form_alter(&$form, $form_state, $form_id) {
-  // if a content type is deleted, delete also all its entries in the database; hook onto submit function
+  // If a content type is deleted, delete also all its entries in the database; hook onto submit function
   if ($form_id == 'node_type_delete_confirm') {
-    $form['#submit'] [] = 'content_complete_node_type_delete_confirm_submit';
+    $form['#submit'][] = 'content_complete_node_type_delete_confirm_submit';
   }
   
-  // if a field from a content type is deleted, delete the entry in the database; hook onto submit function
+  // If a field from a content type is deleted, delete the entry in the database; hook onto submit function
   if ($form_id == 'content_field_remove_form') {
-    $form['#submit'] [] = 'content_complete_content_field_remove_form_submit';
+    $form['#submit'][] = 'content_complete_content_field_remove_form_submit';
   }
   
-  // intercept all node edit forms and highlight field to be completed
-  if (empty($form_state['post']) && arg(2) == 'edit' && strpos($form_id, 'node_form') !== FALSE && !empty($_GET['content_complete_fieldname'])) {
+  // Intercept all node edit forms and highlight field to be completed
+  if (arg(2) == 'edit' && strpos($form_id, 'node_form') !== FALSE && $_GET['content_complete_fieldname'] != '') {
     $fieldname = $_GET['content_complete_fieldname'];
     form_set_error($fieldname, t('Please complete the fields.'));
+  }
+  
+  // Content type settings form
+  if ($form_id == 'node_type_form') {
+    $form['content_complete'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Content complete'),
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+    );
+    
+    $form['content_complete']['content_complete'] = array(
+      '#type' => 'radios',
+      '#title' => t('Completeness'),
+      '#default_value' => variable_get('content_complete_'. $form['#node_type']->type, 0),
+      '#options' => array(t('Disabled'), t('Enabled')),
+      '#description' => t('Enable the completeness feature for that content type.'),
+    );
+    
+    $fields = content_complete_get_fields($form['#node_type']->type);
+
+    $options = array();
+    foreach ($fields as $field_name => $field_data) {
+      $key = $field_name;
+      $label = $field_data['label'] ." <span class='description'>". $field_name ."</span>";
+      $options[$field_name] = $label;
+    }
+    
+    $form['content_complete']['content_complete_fields'] = array(
+      '#type' => 'checkboxes',
+      '#title' => t('Fields'),
+      '#default_value' => variable_get('content_complete_fields_'. $form['#node_type']->type, array()),
+      '#options' => $options,
+      '#description' => t('If one or more fields are selected, completeness checks will be run for this content type.'),
+    );
   }
 }
 
@@ -109,7 +155,9 @@ function content_complete_form_alter(&$form, $form_state, $form_id) {
 function content_complete_node_type_delete_confirm_submit($form, &$form_state) {
   if (isset($form['type']['#value'])) {
     $type = $form['type']['#value'];
-    db_query("DELETE FROM {content_complete} WHERE type = '%s'", $type);
+    variable_del('content_complete_'. $type);
+    variable_del('content_complete_fields_'. $type);
+    db_query("DELETE FROM {content_complete} c INNER JOIN {node} n ON c.nid = n.nid WHERE n.type = '%s'", $type);
   }
 }
 
@@ -123,15 +171,22 @@ function content_complete_content_field_remove_form_submit($form, &$form_state) 
   if (isset($form['type_name']['#value']) && isset($form['field_name']['#value'])) {
     $type = $form['type_name']['#value'];
     $field_name = $form['field_name']['#value'];
-    db_query("DELETE FROM {content_complete} WHERE type = '%s' AND field_name = '%s'", $type, $field_name);
+    $fields = variable_get('content_complete_fields_'. $type, array());
+    for ($i = 0; $i < count(fields); $i++) {
+      if ($fields[$i] == $field_name) unset($fields[$i]);
+    }
+    variable_get('content_complete_fields_'. $type, $fields);
+    db_query("DELETE FROM {content_complete} c INNER JOIN {node} n ON c.nid = n.nid WHERE n.type = '%s'", $type);
   }
 }
 
 /**
- * Get the content complete percentage data for a given content type.
+ * Get the content complete percentage data for a given node or a whole content type.
  *
  * @see theme_content_complete_profile_percent_complete()
- * @param $content_type 
+ * @param $node
+ *   The nid of the node object.
+ * @param $type 
  *   The machine-readable name of the content type.
  * @param $user
  *   The user for which this data is asked. If not set the user that
@@ -140,28 +195,26 @@ function content_complete_content_field_remove_form_submit($form, &$form_state) 
  *   An array of fields such as percentage complete, next field to be
  *   completed etc.
  */
-function content_complete_get_data($content_type, &$user = NULL, &$node = NULL) {  
-  $fields = content_complete_get_fields($content_type); // all fields
-  $tagged_fields = content_complete_get_tagged_fields($content_type); // fields tagged for completed (can be empty)
-  $user_fields = content_complete_get_user_fields($content_type, $user, $node); // fields completed by the user (can be empty)  
-
-  if (empty($user_fields)) return array();
-    
+function content_complete_get_data($node) {  
+  $fields = content_complete_get_fields($node->type); // Grab all fields for that content type
+  $tagged_fields = variable_get('content_complete_fields_'. $node->type, array()); // Fields tagged for completeness (can be empty)
+  $fields_values = content_complete_get_fields_values($node); // Completed fields (can be empty)
+  
   $percent = 0;
   $complete = 0;
   $incomplete = 0;
   $total = 0;
   $nextfield_set = FALSE;
   
-  // compare the two arrays and compute percentages etc.
+  // Compare the two arrays and compute percentages etc.
   foreach ($tagged_fields as $key => $value) {
-    if ($user_fields[$value] == '') { // empty field
+    if ($fields_values[$value] == '') { // Empty field
       if ($nextfield_set === FALSE) {
         $nextfield_set = TRUE;
         $nextfield = $fields[$value]['label'];
         $nextname = $value;
       }
-    } 
+    }
     else {
       $complete++;
     }
@@ -179,115 +232,80 @@ function content_complete_get_data($content_type, &$user = NULL, &$node = NULL) 
   
   $incomplete = count($tagged_fields) - $complete;
   $total = count($tagged_fields);
-  $nid = $user_fields['nid'];
+  $nid = $fields_values['nid'];
   $type_names = node_get_types('names');
   
-  // divide percentages in 4 regions of 25 each
+  // Divide percentages in 4 regions of 25 each
   $leq_percent=0;
   while ($leq_percent<=100) {
     if ($percent <= $leq_percent) break;
     $leq_percent+=25;
   }
   
-  $complete_data = array();
-  $complete_data['nid'] = $nid;
-  $complete_data['percent'] = $percent;
-  $complete_data['leq_percent'] = $leq_percent;
-  $complete_data['completed'] = $complete;
-  $complete_data['incomplete'] = $incomplete;
-  $complete_data['total'] = $total;
-  $complete_data['nextfield'] = t($nextfield);
-  $complete_data['nextpercent'] = $nextpercent;
-  $complete_data['nextname'] = $nextname;
-  $complete_data['type'] = $content_type;
-  $complete_data['title'] = $user_fields['title'];
-    
+  $complete = array();
+  $complete['nid'] = $nid;
+  $complete['percent'] = $percent;
+  $complete['leq_percent'] = $leq_percent;
+  $complete['completed'] = $complete;
+  $complete['incomplete'] = $incomplete;
+  $complete['total'] = $total;
+  $complete['nextfield'] = t($nextfield);
+  $complete['nextpercent'] = $nextpercent;
+  $complete['nextname'] = $nextname;
+  $complete['type'] = $node->type;
+  
   // Put human readble name.
   if (module_exists('i18ncontent')) {
-    $complete_data['name'] = tt("nodetype:type:$content_type:name", $type_names[$content_type]);
+    $complete['name'] = tt("nodetype:type:$node->type:name", $type_names[$node->type]);
   }
   else {
-    $complete_data['name'] = $type_names[$content_type];
+    $complete['name'] = $type_names[$node->type];
   }
-    
-  return $complete_data;
+  
+  // We try to retrieve the cache
+  $completeness = db_result(db_query('SELECT completeness FROM {content_complete} WHERE nid = %d', $node->nid));
+  // If there is no cache we build it
+  if (empty($completeness)) {
+    db_query('INSERT INTO {content_complete} SET nid = %d, completeness = %d', $node->nid, $complete['percent']);
+  }
+  
+  return $complete;
 }
 
 /**
- * Get all the CCK fields that have been completed by the user.
- * 
- * Only if the user has edit permissions for this content type fields
- * will be returned.
- *
- * @param $content_type
- *   The machine-readable name of the content type.
- * @return 
- *   Array of nodes with each node being an array of fields with their values.
- */ 
-function content_complete_get_user_fields($content_type, &$user, &$node) {
-  $nid = _content_complete_get_nid($content_type, $user, $node);
-    
-  // reformat the content for each node 
-  $fields = content_complete_get_fields($content_type); // all fields    
-    
-  $node_fields = array();
-  
-  if($nid) {        
-    $node = node_load($nid);
-    $node_fields['nid'] = $node->nid;
-    
-    foreach ($fields as $field_name => $field_data) {
-      if (isset($node->{$field_name})) {
-        
-        $raw = $node->{$field_name};
-        $value = $raw;
-        
-        if (isset($field_data['module'])) { // this is a CCK field
-          // we check for emptiness using the CCK hook hook_content_is_empty
-          $function = $field_data['module'] .'_content_is_empty';
-          if (!isset($raw[0])) {
-            $value = '';
-          }
-          elseif (!$function($raw[0], $field_name)) {
-            $value = 'cck'; // a dummy value to flag this field has been set
-          } 
-          else {
-            $value = ''; // field not set
-          }
-        }
-        elseif ($field_name == 'files') { // core node files field
-          if (empty($raw)) {
-            $value = '';
-          }
-          else {
-            $value = 'files';
-          }
-        }
-        
-        $node_fields[$field_name] = $value;
-      }
-    }    
-  }
-  
-  return $node_fields;
-}
-
-/**
- * Get all the fields for this content type that have been tagged.
- * 
- * @param $content_type
- *   The machine-readable name of the content type.
- * @return 
- *   Array of fields that have been tagged for completion.
+ * Implementation of hook_nodeapi().
  */
-function content_complete_get_tagged_fields($content_type) {
-  $tagged = array();
-  $sql = "SELECT field_name FROM {content_complete} WHERE type = '%s'";
-  $result = db_query($sql, $content_type);
-  while ($data = db_fetch_object($result)) {
-    $tagged[] = $data->field_name;
+function content_complete_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+  if (variable_get('content_complete_'. $node->type, 0)) {
+    switch ($op) {
+      case 'insert':
+      case 'update':
+        db_query('DELETE FROM {content_complete} WHERE nid = %d', $node->nid);
+        content_complete_get_data($node);
+        break;
+
+      case 'delete':
+        db_query('DELETE FROM {content_complete} WHERE nid = %d', $node->nid);
+        break;
+    }
   }
-  return $tagged;
+}
+
+/**
+ * Implementation of hook_cron().
+ *
+ * Fires hook_update_index() in all modules and cleans up dirty words (see
+ * search_dirty).
+ */
+function content_complete_cron() {
+  $limit = (int)variable_get('content_complete_cron_limit', 500);
+  $types = array_keys(content_complete_get_tagged_types()); // Fields tagged for completeness (can be empty)
+  $list = "('". implode("','", $types) ."')";
+  $result = db_query_range('SELECT n.nid FROM {node} n LEFT JOIN {content_complete} c ON n.nid = c.nid WHERE n.type IN '. $list .' AND c.completeness IS NULL', 0, $limit);
+  while ($node = db_fetch_object($result)) {
+    $node = node_load($node->nid);
+    content_complete_get_data($node);
+  }
 }
 
 /**
@@ -298,15 +316,65 @@ function content_complete_get_tagged_fields($content_type) {
  */
 function content_complete_get_tagged_types() {
   $types = node_get_types('names');
-  $tagged = array(
-     
-  );
-  $sql = "SELECT DISTINCT(type) FROM {content_complete}";
-  $result = db_query($sql);
-  while ($data = db_fetch_object($result)) {
-    $tagged[$data->type] = $types[$data->type];
+  $tagged_types = array();
+  foreach ($types as $type => $name) {
+    if (variable_get('content_complete_'. $type, 0)) {
+     $tagged_types[$type] = $name;
+    }
   }
-  return $tagged;
+  return $tagged_types;
+}
+
+/**
+ * Get all the CCK fields that have been completed.
+ *
+ * @param $content_type
+ *   The machine-readable name of the content type.
+ * @return 
+ *   Array of nodes with each node being an array of fields with their values.
+ */
+function content_complete_get_fields_values($node) {
+  $fields = content_complete_get_fields($node->type); // Grab all fields for the node's content type
+  
+  // We then build an array of the node fields values
+  $node_fields = array();
+  foreach ($fields as $field_name => $field_data) {
+    if (isset($node->{$field_name})) {
+      
+      $raw = $node->{$field_name};
+      $value = $raw;
+      
+      if (isset($field_data['module'])) { // This is a CCK field
+        // We check for emptiness using the CCK hook hook_content_is_empty
+        $function = $field_data['module'] .'_content_is_empty';
+        if (!isset($raw[0])) {
+          $value = '';
+        }
+        elseif (!$function($raw[0], $field_name)) {
+          $value = 'cck'; // A dummy value to flag this field has been set
+        } 
+        else {
+          $value = ''; // Field not set
+        }
+      }
+      elseif ($field_name == 'files') { // Core node files field
+        if (empty($raw)) {
+          $value = '';
+        }
+        else {
+          $value = 'files';
+        }
+      }
+      
+      $node_fields[$field_name] = $value;
+    }
+  }
+  
+  if (count($node_fields)) {
+    $node_fields['nid'] = $node->nid; 
+  }
+  
+  return $node_fields;
 }
 
 /**
@@ -372,73 +440,23 @@ function content_complete_get_fields($content_type) {
 }
 
 /**
- * Get the node id of the node to calculate completion for
- * 
- * Different situations:
- *  - content_profile is enabled and given type is used
- *    for profile
- *      => use the node associated with the user
- *  - user can edit all nodes of given type
- *      => take the node that corresponds to the given node, or
- *      => take the first node of the given type if no node
- *         corresponds
- *  - user can edit only his nodes of given type
- *      => take the node that corresponds to the given node, or
- *      => take the first node of the given type if no node
- *         corresponds
- */
-function _content_complete_get_nid($content_type, &$user, &$node) {  
-  $nid = 0;
-  
-  // when using content_profile we take the profile node of the current user
-  if (module_exists('content_profile') && is_content_profile($content_type)) {
-    $sql = "SELECT n.nid FROM {node} n WHERE type = '%s' AND uid = %d LIMIT 1";
-    $nid = db_result(db_query(db_rewrite_sql($sql), $content_type, $user->uid));
-  }
-  // get all nodes of this cck type the user has edit permissions for
-  else if (user_access('edit any '. $content_type .' content')) {
-    if (isset($node->nid)) {
-      $sql = "SELECT n.nid FROM {node} n WHERE type = '%s' AND nid = '%d'";
-      $nid = db_result(db_query(db_rewrite_sql($sql), $content_type, $node->nid));
-
-      if (!$nid) {
-        $sql = "SELECT n.nid FROM {node} n WHERE type = '%s' LIMIT 1";
-        $nid = db_result(db_query(db_rewrite_sql($sql), $content_type));
-      }
-    } 
-    else {
-      $sql = "SELECT n.nid FROM {node} n WHERE type = '%s' LIMIT 1";
-      $nid = db_result(db_query(db_rewrite_sql($sql), $content_type));
-    }
-  }
-  // get the user's own nodes of this cck type
-  else if (user_access('edit own '. $content_type .' content')) {
-    if (isset($node->nid)) {
-       $sql = "SELECT n.nid FROM {node} n WHERE type = '%s' AND uid = %d AND nid = '%d'";
-       $nid = db_result(db_query(db_rewrite_sql($sql), $content_type, $user->uid, $node->nid));
-
-       if (!$nid) {        
-         $sql = "SELECT n.nid FROM {node} n WHERE type = '%s' AND uid = %d LIMIT 1";
-         $nid = db_result(db_query(db_rewrite_sql($sql), $content_type, $user->uid));
-       }
-     } 
-     else {
-       $sql = "SELECT n.nid FROM {node} n WHERE type = '%s' AND uid = %d LIMIT 1";
-       $nid = db_result(db_query(db_rewrite_sql($sql), $content_type, $user->uid));
-     }
-  }
-  
-  return $nid;
-}
-
-/**
  * Implementation of hook_theme(). 
  */
 function content_complete_theme() {
   return array(
     'content_complete_profile_percent_complete' => array(
-      'arguments' => array('complete_data' => NULL),
+      'arguments' => array('complete' => NULL),
       'file' => 'content_complete.theme.inc',
     )
+  );
+}
+
+/**
+ * Implementation of hook_views_api().
+ */
+function content_complete_views_api() {
+  return array(
+    'api' => 2,
+    'path' => drupal_get_path('module', 'content_complete'),
   );
 }

@@ -18,31 +18,29 @@ function content_complete_install() {
  */
 function content_complete_schema() {
   $schema['content_complete'] = array(
-    'description' => t('Stores content types and their fields that will be checked for completeness.'), 'fields' => array(
-      'type' => array(
-        'type' => 'varchar', 'length' => '127', 'not null' => TRUE, 'default' => '', 'description' => t('{content_node_field}.type') 
-      ), 
-      'field_name' => array(
-        'type' => 'varchar', 'length' => '32', 'not null' => TRUE, 'default' => '', 'description' => t('{content_node_field}.field_name') 
-      ) 
-    ) 
+    'description' => 'Stores cached values of completeness by node.',
+    'fields' => array(
+      'nid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0
+      ),
+      'completeness' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'default' => 0
+      ),
+    ),
+    'primary key' => array('nid'),
+    'indexes' => array(
+      'completeness' => array('completeness'),
+    ),
   );
   
   return $schema;
 }
 
-/**
- * Add an extra option to hide or show the block when the completeness has reached 100%.
- */
-function content_complete_update_6001() {
-  variable_set('content_complete_hide_complete', TRUE);
-  return array();
-}
-
-/**
- * Implementation of hook_uninstall().
- */
 function content_complete_uninstall() {
   drupal_uninstall_schema('content_complete');
-  variable_del('content_complete_hide_complete');
 }
