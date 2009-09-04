@@ -29,11 +29,14 @@ function content_complete_block($op = 'list', $delta = 0, $edit = array()) {
         // Block for completeness of a specific node
         $blocks['content_complete_node']['info'] = t('Node completeness');
         
+        // TODO this block might not be necessary, but we can keep it to show completeness of eg the first node
         // Block for completeness of a the whole content type
-        $types = content_complete_get_tagged_types();
-        foreach ($types as $type => $name) {
-          $blocks['content_complete_type_'. $type]['info'] = t('Content type completeness: !type', array('!type' => $name));
-        }
+        // $types = content_complete_get_tagged_types();
+        // foreach ($types as $type => $name) {
+        //   $blocks['content_complete_type_'. $type]['info'] = t('Content type completeness: !type', array('!type' => $name));
+        // }
+        
+        // krumo($blocks);
         
         return $blocks;
         break;
@@ -43,14 +46,17 @@ function content_complete_block($op = 'list', $delta = 0, $edit = array()) {
         if ($delta == 'content_complete_node' && arg(0) == 'node' && is_numeric(arg(1))) {
           $node = menu_get_object();
           if (variable_get('content_complete_'. $node->type, 0)) {
-            
             $complete = content_complete_get_data($node);
+                      
             if (!empty($complete) && $complete['percent'] != 100) {
               $block['subject'] = t('Completeness');
               $block['content'] = theme('content_complete_profile_percent_complete', $complete);
             }
           }
         }
+        
+        // TODO this block of code is not needed anymore, but we have to handle
+        // permissions in a correct way 
         
         // Content type completeness
         // $types = content_complete_get_tagged_types();
@@ -127,7 +133,12 @@ function content_complete_form_alter(&$form, $form_state, $form_id) {
       '#description' => t('Enable the completeness feature for that content type.'),
     );
     
-    $fields = content_complete_get_fields($form['#node_type']->type);
+    if ($form['#node_type']->type) {
+      $fields = content_complete_get_fields($form['#node_type']->type);
+    } else {
+      // When a node type is added, no fields exist to tag for completion
+      $fields = array();
+    }
 
     $options = array();
     foreach ($fields as $field_name => $field_data) {
@@ -185,12 +196,7 @@ function content_complete_content_field_remove_form_submit($form, &$form_state) 
  *
  * @see theme_content_complete_profile_percent_complete()
  * @param $node
- *   The nid of the node object.
- * @param $type 
- *   The machine-readable name of the content type.
- * @param $user
- *   The user for which this data is asked. If not set the user that
- *   is logged in will be used.
+ *   The node object to calculate completion for.
  * @return 
  *   An array of fields such as percentage complete, next field to be
  *   completed etc.
@@ -199,7 +205,7 @@ function content_complete_get_data($node) {
   $fields = content_complete_get_fields($node->type); // Grab all fields for that content type
   $tagged_fields = variable_get('content_complete_fields_'. $node->type, array()); // Fields tagged for completeness (can be empty)
   $fields_values = content_complete_get_fields_values($node); // Completed fields (can be empty)
-  
+    
   $percent = 0;
   $complete = 0;
   $incomplete = 0;
@@ -219,7 +225,7 @@ function content_complete_get_data($node) {
       $complete++;
     }
   }
-
+  
   $dec = 0;
   if (count($tagged_fields)) {
     $dec = number_format(($complete / count($tagged_fields)), 2);
@@ -242,34 +248,34 @@ function content_complete_get_data($node) {
     $leq_percent+=25;
   }
   
-  $complete = array();
-  $complete['nid'] = $nid;
-  $complete['percent'] = $percent;
-  $complete['leq_percent'] = $leq_percent;
-  $complete['completed'] = $complete;
-  $complete['incomplete'] = $incomplete;
-  $complete['total'] = $total;
-  $complete['nextfield'] = t($nextfield);
-  $complete['nextpercent'] = $nextpercent;
-  $complete['nextname'] = $nextname;
-  $complete['type'] = $node->type;
+  $data = array();
+  $data['nid'] = $nid;
+  $data['percent'] = $percent;
+  $data['leq_percent'] = $leq_percent;
+  $data['completed'] = $complete;
+  $data['incomplete'] = $incomplete;
+  $data['total'] = $total;
+  $data['nextfield'] = t($nextfield);
+  $data['nextpercent'] = $nextpercent;
+  $data['nextname'] = $nextname;
+  $data['type'] = $node->type;
   
   // Put human readble name.
   if (module_exists('i18ncontent')) {
-    $complete['name'] = tt("nodetype:type:$node->type:name", $type_names[$node->type]);
+    $data['name'] = tt("nodetype:type:$node->type:name", $type_names[$node->type]);
   }
   else {
-    $complete['name'] = $type_names[$node->type];
+    $data['name'] = $type_names[$node->type];
   }
   
   // We try to retrieve the cache
   $completeness = db_result(db_query('SELECT completeness FROM {content_complete} WHERE nid = %d', $node->nid));
   // If there is no cache we build it
   if (empty($completeness)) {
-    db_query('INSERT INTO {content_complete} SET nid = %d, completeness = %d', $node->nid, $complete['percent']);
+    db_query('INSERT INTO {content_complete} SET nid = %d, completeness = %d', $node->nid, $data['percent']);
   }
   
-  return $complete;
+  return $data;
 }
 
 /**
@@ -280,11 +286,13 @@ function content_complete_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
     switch ($op) {
       case 'insert':
       case 'update':
+        // Recalculate the cache
         db_query('DELETE FROM {content_complete} WHERE nid = %d', $node->nid);
         content_complete_get_data($node);
         break;
 
       case 'delete':
+        // Remove the cache
         db_query('DELETE FROM {content_complete} WHERE nid = %d', $node->nid);
         break;
     }
@@ -294,8 +302,8 @@ function content_complete_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
 /**
  * Implementation of hook_cron().
  *
- * Fires hook_update_index() in all modules and cleans up dirty words (see
- * search_dirty).
+ * Computes completeness for all nodes that haven't cached those
+ * values yet.
  */
 function content_complete_cron() {
   $limit = (int)variable_get('content_complete_cron_limit', 500);
@@ -435,7 +443,7 @@ function content_complete_get_fields($content_type) {
       $fields[$code] = $data;
     }
   }
-
+  
   return $fields;
 }
 
@@ -457,6 +465,6 @@ function content_complete_theme() {
 function content_complete_views_api() {
   return array(
     'api' => 2,
-    'path' => drupal_get_path('module', 'content_complete'),
+    'path' => drupal_get_path('module', 'content_complete') .'/views',
   );
 }

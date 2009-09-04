@@ -1,10 +1,11 @@
 <?php
 // $Id$
+
 /**
  * Implementation of hook_views_data()
  */
 function content_complete_views_data() {
-  $data['content_complete']['table']['group']  = t('Node');
+  $data['content_complete']['table']['group']  = t('Content Complete');
   
   $data['content_complete']['table']['join'] = array(
     'node' => array(
@@ -15,9 +16,9 @@ function content_complete_views_data() {
 
   $data['content_complete']['completeness'] = array(
     'title' => t('Completeness'),
-    'help' => t('The completeness of the node (define by Content Complete).'),
+    'help' => t('The completeness of the node.'),
     'field' => array(
-      'handler' => 'views_handler_field_numeric',
+      'handler' => 'content_complete_views_handler_field_completeness',
       'click sortable' => TRUE,
     ),
     'argument' => array(
@@ -34,6 +35,22 @@ function content_complete_views_data() {
       'handler' => 'views_handler_sort',
     ),
   );
-
+  
   return $data;
+}
+
+/**
+ * Implementation of hook_views_handlers().
+ */
+function content_complete_views_handlers() {
+  return array(
+    'info' => array(
+      'path' => drupal_get_path('module', 'content_complete') . '/views/handlers',
+    ),
+    'handlers' => array(
+      'content_complete_views_handler_field_completeness' => array(
+        'parent' => 'views_handler_field_custom',
+      ),
+    ),
+  );
 }
