@@ -2,19 +2,19 @@
 // $Id$ 
 
 /** 
- *@file 
- *Administration page callbacks for the content_complete module. 
+ * @file 
+ * Administration page callbacks for the content_complete module. 
  */
 
 /**
- * Menu Callback Function
+ * Menu Callback Function.
  */
 function content_complete_admin_settings() {
   return drupal_get_form('content_complete_admin_settings_form');
 }
 
 /**
- * Admin settings form
+ * Admin settings form.
  */
 function content_complete_admin_settings_form() {
   $form['info'] = array(
@@ -46,15 +46,11 @@ function content_complete_admin_settings_form_submit($form_id, &$form_state) {
     'error_message' => t('The Content Complete cache rebuilding process encountered an error.'), 
   ); 
   batch_set($batch); 
-  // batch_process(); //not needed here because this is a form submit handler; 
-  // the form API will detect the batch and call batch_process() automatically.   
 }
 
 /** 
  * Batch callback operation: Import users. 
  * 
- * @param $size 
- *  Number of users to import in each operation. 
  * @param $context 
  *  Batch context containing state information. 
  */ 

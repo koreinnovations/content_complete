@@ -101,9 +101,8 @@ function content_complete_form_alter(&$form, $form_state, $form_id) {
     form_set_error($fieldname, t('Please complete the fields.'));
   }
   
-  // TODO administer content complete setting: check how this works out with FeedAPI and other similar stuff
   // Content type settings form
-  if ($form_id == 'node_type_form') {
+  if ($form_id == 'node_type_form' && user_access('access content complete')) {
     $form['content_complete'] = array(
       '#type' => 'fieldset',
       '#title' => t('Content complete'),
