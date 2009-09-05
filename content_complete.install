@@ -41,11 +41,25 @@ function content_complete_schema() {
   return $schema;
 }
 
+/**
+ * Implementation of hook_uninstall().
+ */
 function content_complete_uninstall() {
   drupal_uninstall_schema('content_complete');
-  variable_delete('content_complete_hide_complete'); 	 
-    
-  // TODO @hunvreus remove all the variables used by the module
+  variable_delete('content_complete_hide_complete');
+  
+  foreach(array_keys(content_complete_get_enabled_types()) as $type) {
+    variable_delete('content_complete_'. $type);
+    variable_delete('content_complete_fields_'. $type);
+  }
+}
+
+/**
+ * Implementation of hook_disable().
+ */
+function content_complete_disable() { 
+  // Clear the cache, it might not be valid anymore when the module is re-enabled.
+  content_complete_clear_cache();
 }
 
 /** 	 
@@ -53,14 +67,32 @@ function content_complete_uninstall() {
  */ 	 
 function content_complete_update_6001() { 	 
   variable_set('content_complete_hide_complete', TRUE); 	 
-  return array(); 	 
+  return array();
 }
 
 /** 	 
  * Remove the option to hide blocks, it is now stored per content type (hard-coded block),
- * or managed with views filters (no variable required).
- * 
- * TODO @hunvreus add upgrade path from old schema to new schema
+ * or managed with views filters (no variable required). 
  */ 	 
 function content_complete_update_6002() {
+  // Transfer all information to variables.
+  $result = db_query("SELECT * FROM {content_complete} ORDER BY type");
+  while ($item = db_fetch_array($result)) {
+    $type = $result['type'];
+    $field = $result['field_name'];
+    $groups[$type][] = $field;
+  }
+  foreach ($groups as $type => $fields) {
+    variable_set('content_complete_'. $type, 1);
+    variable_set('content_complete_fields_'. $type, $fields);
+  }
+  
+  // Uninstall the previous database table
+  $ret = array();
+  db_drop_table($ret, 'content_complete');
+  
+  // Install the new one that will be used for caching
+  drupal_install_schema('content_complete');
+  
+  return $ret;
 }

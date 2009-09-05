@@ -311,6 +311,13 @@ function content_complete_cron() {
 }
 
 /**
+ * Clear the cache.
+ */
+function content_complete_clear_cache() {
+  db_query("DELETE FROM {content_complete}");
+}
+
+/**
  * Get all content types that have been tagged.
  * 
  * @return
