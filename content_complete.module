@@ -8,7 +8,7 @@
  */
 
 /**
- * Implementation of hook_perm()
+ * Implementation of hook_perm().
  */
 function content_complete_perm() {
   return array(
@@ -18,77 +18,48 @@ function content_complete_perm() {
 }
 
 /**
- * Implementation of hook_block()
+ * Implementation of hook_block().
+ * 
+ * Show a configured block with completeness for the node. Note that this
+ * can be achived in a more flexible way using the views integration.
  */
 function content_complete_block($op = 'list', $delta = 0, $edit = array()) {
   if (user_access('access content complete')) {
     switch ($op) {
       case 'list':
         $blocks = array();
-        
-        // Block for completeness of a specific node
-        $blocks['content_complete_node']['info'] = t('Node completeness');
-        
-        // TODO this block might not be necessary, but we can keep it to show completeness of eg the first node
-        // Block for completeness of a the whole content type
-        // $types = content_complete_get_tagged_types();
-        // foreach ($types as $type => $name) {
-        //   $blocks['content_complete_type_'. $type]['info'] = t('Content type completeness: !type', array('!type' => $name));
-        // }
-        
-        // krumo($blocks);
-        
+        // Block for completeness of a specific node.
+        $blocks['content_complete_node']['info'] = t('Content Complete: Node Completeness');
         return $blocks;
-        break;
-        
       case 'view':
+        // TODO @hunvreus: handle permissions in the correct way (eg who can view complete should be
+        // together with who can edit nodes?)
+      
         // Single node completeness (only displayed on full page view of the node)
         if ($delta == 'content_complete_node' && arg(0) == 'node' && is_numeric(arg(1))) {
           $node = menu_get_object();
           if (variable_get('content_complete_'. $node->type, 0)) {
             $complete = content_complete_get_data($node);
                       
-            if (!empty($complete) && $complete['percent'] != 100) {
-              $block['subject'] = t('Completeness');
+            if (!empty($complete) && 
+              ($complete['percent'] != 100 || ($complete['percent'] == 100 && !variable_get('content_complete_hide_complete', TRUE)))) {
+              $block['subject'] = t('Node Completeness');
               $block['content'] = theme('content_complete_profile_percent_complete', $complete);
             }
           }
-        }
-        
-        // TODO this block of code is not needed anymore, but we have to handle
-        // permissions in a correct way 
-        
-        // Content type completeness
-        // $types = content_complete_get_tagged_types();
-        //         foreach ($types as $type => $name) {
-        //           if ($delta == 'content_complete_type_'. $type) { 
-        //             // When using nodes for profiles we take the profile node of the current user
-        //             if (module_exists('content_profile') && is_content_profile($content_type)) {
-        //               $sql = "SELECT n.nid FROM {node} n WHERE type = '%s' AND uid = %d";
-        //               $result = db_query(db_rewrite_sql($sql), $content_type, $user->uid);
-        //             }
-        //             // Get all nodes of this cck type the user has edit permissions for
-        //             else if (user_access('edit any '. $content_type .' content')) {
-        //               $sql = "SELECT n.nid FROM {node} n WHERE type = '%s'";
-        //               $result = db_query(db_rewrite_sql($sql), $content_type);
-        //             } 
-        //             else if (user_access('edit own '. $content_type .' content')) {
-        //               $sql = "SELECT n.nid FROM {node} n WHERE type = '%s' AND uid = %d";
-        //               $result = db_query(db_rewrite_sql($sql), $content_type, $user->uid);
-        //             }
-        //             if ($node = db_fetch_object($result)) {
-        //               $node = node_load($node->nid);
-        //               $complete = content_complete_get_data($node);
-        //               if (!empty($complete) && $complete['percent'] != 100) {
-        //                 $block['subject'] = t('Completeness');
-        //                 $block['content'] = theme('content_complete_profile_percent_complete', $complete);
-        //               }
-        //             }
-        //           }
-        //         }
-        
+        }  
         return $block;
-        break;
+      case 'configure': 
+        $form['content_complete_hide_block'] = array(
+          '#title' => t('Hide the blocks when the percentage reaches 100%'),
+          '#type' => 'checkbox',
+          '#default_value' => variable_get('content_complete_hide_complete', TRUE),
+          '#description' => t('If you disable this feature, the blocks will be shown even when 100% has been reached.'),
+        );
+        return $form;
+      case 'save':
+        variable_set('content_complete_hide_complete', $edit['content_complete_hide_block']);
+        return;
     }
   }
 }
@@ -133,27 +104,34 @@ function content_complete_form_alter(&$form, $form_state, $form_id) {
       '#description' => t('Enable the completeness feature for that content type.'),
     );
     
-    if ($form['#node_type']->type) {
-      $fields = content_complete_get_fields($form['#node_type']->type);
-    } else {
-      // When a node type is added, no fields exist to tag for completion
-      $fields = array();
-    }
+    // Do we add a new content type, or do we modify an existing one?
+    $type_exists = ($form['#node_type']->type) ? TRUE : FALSE;
 
-    $options = array();
-    foreach ($fields as $field_name => $field_data) {
-      $key = $field_name;
-      $label = $field_data['label'] ." <span class='description'>". $field_name ."</span>";
-      $options[$field_name] = $label;
+    if ($type_exists) {
+      $fields = content_complete_get_fields($form['#node_type']->type);
+      
+      $options = array();
+      foreach ($fields as $field_name => $field_data) {
+        $key = $field_name;
+        $label = $field_data['label'] ." <span class='description'>". $field_name ."</span>";
+        $options[$field_name] = $label;
+      }
+
+      $form['content_complete']['content_complete_fields'] = array(
+        '#type' => 'checkboxes',
+        '#title' => t('Fields'),
+        '#default_value' => variable_get('content_complete_fields_'. $form['#node_type']->type, array()),
+        '#options' => $options,
+        '#description' => t('Select one or more fields for completeness.'),
+      );
+    } else {
+      // Warn the user that no fields are available at the time of content type creation.
+      $form['content_complete']['warning_new_type'] = array(
+        '#prefix' => "<div class='warning'>",
+        '#value' => t('You can only add fields to check for completeness after creating the content type and adding fields to it.'),
+        '#suffix' => "</div>",
+      ); 
     }
-    
-    $form['content_complete']['content_complete_fields'] = array(
-      '#type' => 'checkboxes',
-      '#title' => t('Fields'),
-      '#default_value' => variable_get('content_complete_fields_'. $form['#node_type']->type, array()),
-      '#options' => $options,
-      '#description' => t('If one or more fields are selected, completeness checks will be run for this content type.'),
-    );
   }
 }
 
@@ -309,7 +287,7 @@ function content_complete_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
  */
 function content_complete_cron() {
   $limit = (int)variable_get('content_complete_cron_limit', 500);
-  $types = array_keys(content_complete_get_tagged_types()); // Fields tagged for completeness (can be empty)
+  $types = array_keys(content_complete_get_enabled_types()); // Fields tagged for completeness (can be empty)
   $list = "('". implode("','", $types) ."')";
   $result = db_query_range('SELECT n.nid FROM {node} n LEFT JOIN {content_complete} c ON n.nid = c.nid WHERE n.type IN '. $list .' AND c.completeness IS NULL', 0, $limit);
   while ($node = db_fetch_object($result)) {
@@ -324,7 +302,7 @@ function content_complete_cron() {
  * @return
  *   Array of content types.
  */
-function content_complete_get_tagged_types() {
+function content_complete_get_enabled_types() {
   $types = node_get_types('names');
   $tagged_types = array();
   foreach ($types as $type => $name) {
@@ -333,6 +311,19 @@ function content_complete_get_tagged_types() {
     }
   }
   return $tagged_types;
+}
+
+/**
+ * Determine if a given node type is a content complete node type.
+ * 
+ * @param $type
+ *   The node object or the node's type
+ */
+function content_complete_enabled_type($type) {
+  if (is_object($type)) {
+    $type = $type->type;
+  }
+  return variable_get('content_complete_'. $type, 0);
 }
 
 /**

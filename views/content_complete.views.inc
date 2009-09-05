@@ -36,6 +36,15 @@ function content_complete_views_data() {
     ),
   );
   
+  $data['content_complete']['content_type'] = array(
+    'title' => t('Content type'),
+    'help' => t('Whether or not the content type is used for Content Complete.'),
+    'filter' => array(
+      'handler' => 'content_complete_views_handler_filter_content_type',
+      'label' => t('Is Content Complete enabled content type'),
+    ),
+  );
+  
   return $data;
 }
 
@@ -48,9 +57,16 @@ function content_complete_views_handlers() {
       'path' => drupal_get_path('module', 'content_complete') . '/views/handlers',
     ),
     'handlers' => array(
+      // field handlers
       'content_complete_views_handler_field_completeness' => array(
         'parent' => 'views_handler_field_custom',
       ),
+      
+      // filter handlers
+      'content_complete_views_handler_filter_content_type' => array(
+        'parent' => 'views_handler_filter_boolean_operator',
+      ),
+      
     ),
   );
 }

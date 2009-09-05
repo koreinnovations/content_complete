@@ -1,0 +1,20 @@
+<?php
+// $Id$
+
+/**
+ * Filter handler for filtering nodes by whether or not they're content-complete enabled.
+ */
+class content_complete_views_handler_filter_content_type extends views_handler_filter_boolean_operator {
+  function query() {
+    $types = node_get_types();
+    $enabled_types = array();
+        
+    foreach ($types as $type => $name) {
+      if (content_complete_enabled_type($type)) {
+        $enabled_types[] = '"'. $type .'"';
+      }
+    }
+    
+    $this->query->add_where(0, 'node.type '. (empty($this->value) ? 'NOT IN' : 'IN') .'('. implode(', ', $enabled_types) .')');
+  }
+}

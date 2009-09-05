@@ -43,4 +43,24 @@ function content_complete_schema() {
 
 function content_complete_uninstall() {
   drupal_uninstall_schema('content_complete');
+  variable_delete('content_complete_hide_complete'); 	 
+    
+  // TODO @hunvreus remove all the variables used by the module
+}
+
+/** 	 
+ * Add an extra option to hide or show the block when the completeness has reached 100%. 	 
+ */ 	 
+function content_complete_update_6001() { 	 
+  variable_set('content_complete_hide_complete', TRUE); 	 
+  return array(); 	 
+}
+
+/** 	 
+ * Remove the option to hide blocks, it is now stored per content type (hard-coded block),
+ * or managed with views filters (no variable required).
+ * 
+ * TODO @hunvreus add upgrade path from old schema to new schema
+ */ 	 
+function content_complete_update_6002() {
 }
