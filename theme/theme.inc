@@ -5,7 +5,15 @@
  * @file
  * Theme and template preprocessing code
  */
-
+ 
+/**
+ * TODO: make a preprocess function out of this
+ * Preprocessor to construct the complete percentages.
+ */
+// function template_preprocess_content_complete_profile_percent_complete(&$vars) {   
+//   drupal_add_css(drupal_get_path('module', 'content_complete') .'/content_complete.css');
+// }
+ 
 /**
  * Block Theme function that displays the default output of a content
  * complete percent. Use this theme function to override
@@ -26,15 +34,22 @@
  *   ['nextname'] - str - The field name of the next field for field focus.
  */
 function theme_content_complete_profile_percent_complete($complete_data) {
+  // TODO: refactor this inside preprocess functions. Right now, lots of variables
+  // aren't always set (eg $complete_data['leq_percent'] is not set when called by views).
+  // We must compute them inside the preprocess functions
+  
   // add CSS for theming
   drupal_add_css(drupal_get_path('module', 'content_complete') .'/content_complete.css');
   
   $id = $complete_data['type'];
-
   $output .= '<div id="cck-complete-wrapper-'. $id .'" class="cck-complete-wrapper">';
-  $output .= t('!complete% complete', array(
-    '!complete' => $complete_data['percent'] 
-  ));
+  
+  if($complete_data['nextpercent']) {
+    $output .= t('!complete% complete', array(
+      '!complete' => $complete_data['percent'] 
+    ));
+  }
+
   $output .= '<div id="cck-complete-percent-bar-wrapper-'. $id .'" class="cck-complete-percent-bar-wrapper">';
   $output .= '<div id="cck-complete-percent-bar-'. $id .'" class="cck-complete-percent-bar cck-complete-percent-bar-leq-'. $complete_data['leq_percent'] .' cck-complete-percent-bar-'. $complete_data['percent'] .'" style="width: '. $complete_data['percent'] .'%"></div>';
   $output .= '</div>';

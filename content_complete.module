@@ -193,6 +193,8 @@ function content_complete_content_field_remove_form_submit($form, &$form_state) 
 
 /**
  * Get the content complete percentage data for a given node or a whole content type.
+ * 
+ * TODO: refactor part of this code into the preprocess function, see theme.inc
  *
  * @see theme_content_complete_profile_percent_complete()
  * @param $node
@@ -451,10 +453,12 @@ function content_complete_get_fields($content_type) {
  * Implementation of hook_theme(). 
  */
 function content_complete_theme() {
+  $path = drupal_get_path('module', 'content_complete') .'/theme';
   return array(
     'content_complete_profile_percent_complete' => array(
       'arguments' => array('complete' => NULL),
-      'file' => 'content_complete.theme.inc',
+      'file' => 'theme.inc',
+      'path' => $path,
     )
   );
 }
