@@ -18,6 +18,20 @@ function content_complete_perm() {
 }
 
 /**
+ * Implementation of hook_menu() 	 
+ */ 	 
+function content_complete_menu() { 	 
+  $items['admin/settings/content_complete'] = array( 	 
+    'title' => 'Content Complete', 	 
+    'description' => 'Tag CCK fields as required for percent complete handling.', 	 
+    'page callback' => 'content_complete_admin_settings', 	 
+    'access arguments' => array('administer content complete'), 	 
+    'file' => 'content_complete.admin.inc' 	 
+  );
+  return $items; 	 
+}
+
+/**
  * Implementation of hook_block().
  * 
  * Show a configured block with completeness for the node. Note that this
@@ -87,6 +101,7 @@ function content_complete_form_alter(&$form, $form_state, $form_id) {
     form_set_error($fieldname, t('Please complete the fields.'));
   }
   
+  // TODO administer content complete setting: check how this works out with FeedAPI and other similar stuff
   // Content type settings form
   if ($form_id == 'node_type_form') {
     $form['content_complete'] = array(
