@@ -37,7 +37,7 @@ function content_complete_menu() {
  * Show a configured block with completeness for the node. Note that this
  * can be achived in a more flexible way using the views integration.
  */
-function content_complete_block($op = 'list', $delta = 0, $edit = array()) {
+function content_complete_block($op = 'list', $delta = 0, $edit = array()) {  
   if (user_access('access content complete')) {
     switch ($op) {
       case 'list':
@@ -46,12 +46,12 @@ function content_complete_block($op = 'list', $delta = 0, $edit = array()) {
         $blocks['content_complete_node']['info'] = t('Content Complete: Node Completeness');
         return $blocks;
       case 'view':
-        // TODO @hunvreus: handle permissions in the correct way (eg who can view complete should be
+        // TODO @hunvreus: handle permissions in the correct way (eg who can view complete edit links should be
         // together with who can edit nodes?)
-      
         // Single node completeness (only displayed on full page view of the node)
         if ($delta == 'content_complete_node' && arg(0) == 'node' && is_numeric(arg(1))) {
           $node = menu_get_object();
+          
           if (variable_get('content_complete_'. $node->type, 0)) {
             $complete = content_complete_get_data($node);
                       
@@ -260,6 +260,15 @@ function content_complete_get_data($node) {
   }
   else {
     $data['name'] = $type_names[$node->type];
+  }
+  
+  // See who has edit permissions, depending on this we show/hide the edit links
+  global $user;
+  if (user_access('edit any '. $node->type .' content') || 
+     (user_access('edit own '. $node->type .' content') && $node->uid == $user->uid)) {
+    $data['edit'] = TRUE;
+  } else {
+    $data['edit'] = FALSE;
   }
   
   // We try to retrieve the cache
