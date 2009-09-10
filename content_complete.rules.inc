@@ -3,9 +3,7 @@
 
 /**
  * @file
- * Some rules conditions/actions
- * 
- * TODO upgrade to latest version
+ * Some rules conditions/actions to check for completeness. 
  */
  
 /**
@@ -19,10 +17,12 @@ function content_complete_rules_condition_info() {
     'content_complete_completeness_percentage' => array(
       'label' => t('Content Complete % is >= than x'),
       'arguments' => array(
-        'user' => array('type' => 'user', 'label' => t('User'))
+        'node' => array(
+          'type' => 'node',
+          'label' => t('Completed node'),
+        ),
       ),
       'module' => 'Content Complete',
-      'eval input' => array('percentage'),
     ),
   );
 }
@@ -40,14 +40,6 @@ function content_complete_completeness_percentage_form($settings = array(), &$fo
     '#default_value' => isset($settings['percentage']) ? $settings['percentage'] : '',
     '#description' => t('The % to compare if >=. Example: 100, so the condition will be triggered if the content is complete.')
   );
-  $form['settings']['type'] = array(
-    '#type' => 'select',
-    '#title' => t('Content Type to analyze'),
-    '#options' => node_get_types('names'),
-    '#default_value' => isset($settings['type']) ? $settings['type'] : '',
-    '#description' => t('Content Type to analyze'),
-    '#required' => TRUE,
-  );
 }
 
 /**
@@ -63,7 +55,7 @@ function content_complete_completeness_percentage_form($settings = array(), &$fo
  * 
  * @return TRUE or FALSE
  */
-function content_complete_completeness_percentage($user, $settings) {
-  $complete = content_complete_get_data($settings['type'], $user);
+function content_complete_completeness_percentage($node, $settings) {
+  $complete = content_complete_get_data($node);
   return ($complete['percent'] >= $settings['percentage']);
 }

@@ -56,8 +56,6 @@ function content_complete_block($op = 'list', $delta = 0, $edit = array()) {
         $blocks['content_complete_node']['info'] = t('Content Complete: Node Completeness');
         return $blocks;
       case 'view':
-        // TODO @hunvreus: handle permissions in the correct way (eg who can view complete edit links should be
-        // together with who can edit nodes?)
         // Single node completeness (only displayed on full page view of the node)
         if ($delta == 'content_complete_node' && arg(0) == 'node' && is_numeric(arg(1))) {
           $node = menu_get_object();
@@ -73,7 +71,7 @@ function content_complete_block($op = 'list', $delta = 0, $edit = array()) {
           }
         }  
         return $block;
-      case 'configure': 
+      case 'configure':
         $form['content_complete_hide_block'] = array(
           '#title' => t('Hide the blocks when the percentage reaches 100%'),
           '#type' => 'checkbox',
@@ -290,7 +288,11 @@ function content_complete_get_data($node) {
   }
   
   // Update the cache.
-  content_complete_update_cache($node, $data);
+  $completeness = db_result(db_query('SELECT completeness FROM {content_complete} WHERE nid = %d', $node->nid));
+  // If there is no cache we build it
+  if (empty($completeness)) {
+    db_query('INSERT INTO {content_complete} SET nid = %d, completeness = %d', $node->nid, $data['percent']);
+  }
     
   return $data;
 }
@@ -321,23 +323,6 @@ function content_complete_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
  */
 function content_complete_clear_cache() {
   db_query("DELETE FROM {content_complete}");
-}
-
-/**
- * Update the cache.
- * 
- * @param $node The node to update the cache for
- * @param $data The completeness data for this node
- */
-function content_complete_update_cache(&$node, &$data) {  
-  $completeness = db_result(db_query('SELECT completeness FROM {content_complete} WHERE nid = %d', $node->nid));
-  // If there is no cache we build it
-  if (empty($completeness)) {
-    db_query('INSERT INTO {content_complete} SET nid = %d, completeness = %d', $node->nid, $data['percent']);
-  } 
-  elseif ($completeness != $data['percent']) {
-    db_query('UPDATE {content_complete} SET completeness = %d WHERE nid = %d', $data['percent'], $node->nid);
-  }
 }
 
 /**
