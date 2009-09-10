@@ -36,7 +36,7 @@
 function theme_content_complete_profile_percent_complete($complete_data) {
   // TODO: refactor this inside preprocess functions. Right now, lots of variables
   // aren't always set (eg $complete_data['leq_percent'] is not set when called by views).
-  // We must compute them inside the preprocess functions
+  // We must compute them inside the preprocess functions.
   
   // add CSS for theming
   drupal_add_css(drupal_get_path('module', 'content_complete') .'/content_complete.css');

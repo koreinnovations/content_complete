@@ -19,7 +19,7 @@ function content_complete_admin_settings() {
 function content_complete_admin_settings_form() {
   $form['info'] = array(
     '#prefix' => '<div>', 
-    '#value' => t('Rebuild the complete cache for all nodes of a content complete enabled type, using the Batch API.'),
+    '#value' => t('Rebuild the complete cache for all nodes of a Content-Complete-enabled type, using the Batch API.'),
     '#suffix' => '</div>',
   );
   
@@ -35,18 +35,20 @@ function content_complete_admin_settings_form() {
  * Handle form submission by beginning batch operation. 
  */
 function content_complete_admin_settings_form_submit($form_id, &$form_state) {
-  $batch = array( 
+  $batch = array(
+    'title' => t('Rebuilding Cache'),
     'operations' => array( 
       array('content_complete_rebuild_cache', array()), 
     ), 
     'finished' => 'content_complete_rebuild_cache_finished', 
-    'title' => t('Rebuilding Cache'), 
     'init_message' => t('The Content Complete cache rebuilding process is beginning.'), 
-    'progress_message' => t('Rebuilt @current of @total.'), 
     'error_message' => t('The Content Complete cache rebuilding process encountered an error.'), 
+    'file' => drupal_get_path('module', 'content_complete') .'/content_complete.admin.inc',
   ); 
   batch_set($batch); 
 }
+
+
 
 /** 
  * Batch callback operation: Import users. 
@@ -55,9 +57,9 @@ function content_complete_admin_settings_form_submit($form_id, &$form_state) {
  *  Batch context containing state information. 
  */ 
 function content_complete_rebuild_cache(&$context) {
-  // How many cache rebuilds to process in each batch.
+  // How many node cache rebuilds to process in each batch.
   $limit = 50;
-    
+  
   // Initialize sandbox the first time through.
   if (!isset($context['sandbox']['progress'])) {
     // Types tagged for completeness (can be empty)
@@ -65,20 +67,21 @@ function content_complete_rebuild_cache(&$context) {
     $list = "('". implode("','", $types) ."')";
 
     // Count the number of cache rebuilds we will have to do.
-    $max = db_result(db_query('SELECT count(nid) FROM {node} WHERE type IN '. $list));
+    $max = db_result(db_query('SELECT count(nid) FROM {node} WHERE type IN '. $list));    
     
     $context['sandbox']['progress'] = 0;
     $context['sandbox']['current_nid'] = 0;
     $context['sandbox']['list'] = $list;
     $context['sandbox']['max'] = $max;
+    
   }
    
   // Retrieve range of nids to rebuild cache for
   $result = db_query_range(
-    'SELECT nid FROM {node} WHERE nid > %d AND type in '. $context['sandbox']['types'] .' ORDER BY nid ASC',
+    'SELECT nid FROM {node} WHERE nid > %d AND type in '. $context['sandbox']['list'] .' ORDER BY nid ASC',
     $context['sandbox']['current_nid'], 0, $limit
   );
-  
+    
   // Loop over all the nodes to process.
   while ($node = db_fetch_object($result)) {
     
@@ -88,28 +91,23 @@ function content_complete_rebuild_cache(&$context) {
     
     // Store some result for post-processing in the finished callback.
     $context['results'][] = $node->nid;
-    
+        
     // Update progress information. 
     $context['sandbox']['progress']++; 
-    $context['sandbox']['nid'] = $node->nid; 
+    $context['sandbox']['current_nid'] = $node->nid; 
     $context['message'] = t('Rebuilding complete cache for node %nid', array('%nid' => $node->nid)); 
   }
   
   // Let the batch engine know how close we are to completion. 
-  // if ($context['sandbox']['progress'] == $context['sandbox']['max']) { 
-  //   // Done! 
-  //   $context['finished'] = 1; 
-  // } 
-  // else { 
-  //   $context['finished'] = $context['sandbox']['progress'] / $context['sandbox']['max']; 
-  // }
-  
-  $context['finished'] = $context['sandbox']['progress'] / $context['sandbox']['max']; 
+  if ($context['sandbox']['progress'] != $context['sandbox']['max']) { 
+    $context['finished'] = $context['sandbox']['progress'] / $context['sandbox']['max']; 
+  }
 }
 
-function content_complete_rebuild_cache_finished($success, $results, $operations) {
-  if ($success) { 
-    drupal_set_message(t('Content Complete cache rebuilding successfully completed.')); 
+function content_complete_rebuild_cache_finished($success, $results, $operations) {  
+  if ($success) {
+    $message = format_plural(count($results), 'One node cache rebuilt.', '@count node caches rebuilt.');
+    drupal_set_message($message); 
   } 
   else { 
     // A fatal error occurred during batch processing. 
