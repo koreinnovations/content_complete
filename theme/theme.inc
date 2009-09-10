@@ -4,15 +4,9 @@
 /**
  * @file
  * Theme and template preprocessing code
+ * 
+ * TODO refactor inside preprocess functions
  */
- 
-/**
- * TODO: make a preprocess function out of this
- * Preprocessor to construct the complete percentages.
- */
-// function template_preprocess_content_complete_profile_percent_complete(&$vars) {   
-//   drupal_add_css(drupal_get_path('module', 'content_complete') .'/content_complete.css');
-// }
  
 /**
  * Block Theme function that displays the default output of a content
@@ -33,29 +27,31 @@
  *   ['nextpercent'] - int - What the total percent complete value will be when ['nextfield'] is complete.
  *   ['nextname'] - str - The field name of the next field for field focus.
  */
-function theme_content_complete_profile_percent_complete($complete_data) {
-  // TODO: refactor this inside preprocess functions. Right now, lots of variables
-  // aren't always set (eg $complete_data['leq_percent'] is not set when called by views).
-  // We must compute them inside the preprocess functions.
-  
+function theme_content_complete_profile_percent_complete($complete_data) {  
   // add CSS for theming
   drupal_add_css(drupal_get_path('module', 'content_complete') .'/content_complete.css');
   
-  $id = $complete_data['type'];
-  $output .= '<div id="cck-complete-wrapper-'. $id .'" class="cck-complete-wrapper">';
+  $output .= '<div id="cck-complete-wrapper" class="cck-complete-wrapper">';
   
-  if($complete_data['nextpercent']) {
+  if (isset($complete_data['nextpercent'])) {
     $output .= t('!complete% complete', array(
       '!complete' => $complete_data['percent'] 
     ));
   }
+  
+  // Divide percentages in 4 regions of 25 each
+  $complete_data['leq_percent']=0;
+  while ($complete_data['leq_percent']<=100) {
+    if ($complete_data['percent'] <= $complete_data['leq_percent']) break;
+    $complete_data['leq_percent']+=25;
+  }  
 
-  $output .= '<div id="cck-complete-percent-bar-wrapper-'. $id .'" class="cck-complete-percent-bar-wrapper">';
-  $output .= '<div id="cck-complete-percent-bar-'. $id .'" class="cck-complete-percent-bar cck-complete-percent-bar-leq-'. $complete_data['leq_percent'] .' cck-complete-percent-bar-'. $complete_data['percent'] .'" style="width: '. $complete_data['percent'] .'%"></div>';
+  $output .= '<div id="cck-complete-percent-bar-wrapper" class="cck-complete-percent-bar-wrapper">';
+  $output .= '<div id="cck-complete-percent-bar" class="cck-complete-percent-bar cck-complete-percent-bar-leq-'. $complete_data['leq_percent'] .' cck-complete-percent-bar-'. $complete_data['percent'] .'" style="width: '. $complete_data['percent'] .'%"></div>';
   $output .= '</div>';
   $output .= '</div>';
 
-  if ($complete_data['edit'] && $complete_data['nextfield'] && $complete_data['nextpercent']) {
+  if (isset($complete_data['edit']) && $complete_data['edit'] && isset($complete_data['nextfield']) && isset($complete_data['nextpercent'])) {
     $output .= t('Filling out <i>!nextfield</i> will bring !typename to !complete%.', array(
       '!nextfield' => l($complete_data['nextfield'], 'node/'. $complete_data['nid'] .'/edit', array(
         'query' => 'content_complete_fieldname='. $complete_data['nextname'] 

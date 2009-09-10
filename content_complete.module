@@ -251,17 +251,9 @@ function content_complete_get_data($node) {
   $nid = $fields_values['nid'];
   $type_names = node_get_types('names');
   
-  // Divide percentages in 4 regions of 25 each
-  $leq_percent=0;
-  while ($leq_percent<=100) {
-    if ($percent <= $leq_percent) break;
-    $leq_percent+=25;
-  }
-  
   $data = array();
   $data['nid'] = $nid;
   $data['percent'] = $percent;
-  $data['leq_percent'] = $leq_percent;
   $data['completed'] = $complete;
   $data['incomplete'] = $incomplete;
   $data['total'] = $total;

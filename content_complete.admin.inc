@@ -60,11 +60,11 @@ function content_complete_rebuild_cache(&$context) {
   // How many node cache rebuilds to process in each batch.
   $limit = 50;
   
-  // Clear the cache, we will rebuild it entirely.
-  content_complete_clear_cache();
-  
   // Initialize sandbox the first time through.
   if (!isset($context['sandbox']['progress'])) {
+    // Clear the cache, we will rebuild it entirely.
+    content_complete_clear_cache();
+    
     // Types tagged for completeness (can be empty)
     $types = array_keys(content_complete_get_enabled_types()); 
     $list = "('". implode("','", $types) ."')";
