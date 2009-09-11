@@ -2,6 +2,11 @@
 // $Id$
 
 /**
+ *  @file
+ *  Views integration.
+ */
+
+/**
  * Implementation of hook_views_data()
  */
 function content_complete_views_data() {
@@ -54,7 +59,7 @@ function content_complete_views_data() {
 function content_complete_views_handlers() {
   return array(
     'info' => array(
-      'path' => drupal_get_path('module', 'content_complete') . '/views/handlers',
+      'path' => drupal_get_path('module', 'content_complete') .'/views/handlers',
     ),
     'handlers' => array(
       // field handlers

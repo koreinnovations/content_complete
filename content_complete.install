@@ -48,7 +48,7 @@ function content_complete_uninstall() {
   drupal_uninstall_schema('content_complete');
   variable_delete('content_complete_hide_complete');
   
-  foreach(array_keys(content_complete_get_enabled_types()) as $type) {
+  foreach (array_keys(content_complete_get_enabled_types()) as $type) {
     variable_delete('content_complete_'. $type);
     variable_delete('content_complete_fields_'. $type);
   }
@@ -62,17 +62,17 @@ function content_complete_disable() {
   content_complete_clear_cache();
 }
 
-/** 	 
- * Add an extra option to hide or show the block when the completeness has reached 100%. 	 
+/**
+ * Add an extra option to hide or show the block when the completeness has reached 100%.
  */ 	 
 function content_complete_update_6001() { 	 
   variable_set('content_complete_hide_complete', TRUE); 	 
   return array();
 }
 
-/** 	 
+/**
  * Remove the option to hide blocks, it is now stored per content type (hard-coded block),
- * or managed with views filters (no variable required). 
+ * or managed with views filters (no variable required).
  */ 	 
 function content_complete_update_6002() {
   // Transfer all information to variables.

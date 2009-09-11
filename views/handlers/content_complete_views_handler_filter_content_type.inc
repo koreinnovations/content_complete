@@ -2,8 +2,10 @@
 // $Id$
 
 /**
- * Filter handler for filtering nodes by whether or not they're content-complete enabled.
+ *  @file
+ *  This defines a views handler to filter nodes by whether or not they're Content-Complete-enabled.
  */
+
 class content_complete_views_handler_filter_content_type extends views_handler_filter_boolean_operator {
   function query() {
     $types = node_get_types();

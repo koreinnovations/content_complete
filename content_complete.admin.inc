@@ -120,7 +120,7 @@ function content_complete_rebuild_cache_finished($success, $results, $operations
     $arguments_as_string = implode(', ', $arguments);
     
     watchdog('content_complete', "Rebuild cache: error when calling operation '%s'('%s')", array($operation, $arguments_as_string)); 
-    drupal_set_message(t('An error occurred and has been recorded in the system log.'),'error'); 
+    drupal_set_message(t('An error occurred and has been recorded in the system log.'), 'error'); 
   }
 }
 

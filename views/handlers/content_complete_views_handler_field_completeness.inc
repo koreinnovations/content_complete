@@ -3,7 +3,7 @@
 
 /**
  *  @file
- *  This defines views handlers for the content complete module.
+ *  This defines a view that outputs the completeness value of a node.
  */
 
 class content_complete_views_handler_field_completeness extends views_handler_field_custom {
@@ -53,8 +53,7 @@ class content_complete_views_handler_field_completeness extends views_handler_fi
       '#size' => 30,
       '#default_value' => $this->options['suffix'],
       '#description' => t('Text to put after the number of runs.'),
-    );
-    
+    );  
   }
 	
   /**
@@ -67,16 +66,16 @@ class content_complete_views_handler_field_completeness extends views_handler_fi
   }	
 	
   function render($values) {    
-  	$data['percent'] = $values->content_complete_completeness;
-  	switch ($this->options['display_as']) {
-    	default:
-    	case 'numeric':
-    		return check_plain($this->options['advanced_settings']['prefix'] . $data['percent'] . $this->options['advanced_settings']['suffix']);
+    $data['percent'] = $values->content_complete_completeness;
+    switch ($this->options['display_as']) {
+      default:
+      case 'numeric':
+    	  return check_plain($this->options['advanced_settings']['prefix'] . $data['percent'] . $this->options['advanced_settings']['suffix']);
     	break;
     	case 'bar':
-    		return theme('content_complete_profile_percent_complete', $data);
-    	break;    	
+    	  return theme('content_complete_profile_percent_complete', $data);
+      break;    	
     }
-    
   }
+  
 }
