@@ -24,12 +24,14 @@ function content_complete_schema() {
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
-        'default' => 0
+        'default' => 0,
+        'description' => t('{node}.nid') 
       ),
       'completeness' => array(
         'type' => 'int',
         'unsigned' => TRUE,
-        'default' => 0
+        'default' => 0,
+        'description' => t('Completeness of this node.')
       ),
     ),
     'primary key' => array('nid'),
