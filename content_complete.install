@@ -95,7 +95,7 @@ function content_complete_update_6002() {
   // Install the new one that will be used for caching
   drupal_install_schema('content_complete');
   
-  drupal_set_message(t('Content Complete settings are now stored within the <a href="@types">content types</a>. All completeness values are cached and it is recommended to <a href="@cache">rebuild the cache</a>.', array('@types' => url('admin/content/types'), '@cache' => url('admin/content/content_complete'))));
+  drupal_set_message(t('Content Complete settings are now stored within the <a href="@types">content types</a>. All completeness values are cached and it is recommended to <a href="@cache">rebuild the cache</a>. You will also need to reconfigure your <a href="@blocks">blocks</a>.', array('@types' => url('admin/content/types'), '@cache' => url('admin/content/content_complete'), '@blocks' => url('admin/build/block'))));
   
   return $ret;
 }

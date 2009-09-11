@@ -52,8 +52,19 @@ function content_complete_block($op = 'list', $delta = 0, $edit = array()) {
     switch ($op) {
       case 'list':
         $blocks = array();
+    
         // Block for completeness of a specific node.
         $blocks['content_complete_node']['info'] = t('Content Complete: Node Completeness');
+        $blocks['content_complete_node']['cache'] = BLOCK_NO_CACHE;
+        
+        // Blocks for completeness of the first node of a Content-Complete-enabled type.
+        // This is kept for legacy, soon to be replaced with views.
+        $types = content_complete_get_enabled_types();
+        foreach ($types as $type => $name) {
+          $blocks[$type]['info'] = t('Content Complete: !name (First Node)', array('!name' => $name));
+          $blocks[$type]['cache'] = BLOCK_NO_CACHE;
+        }
+                
         return $blocks;
       case 'view':
         // Single node completeness (only displayed on full page view of the node)
@@ -69,7 +80,24 @@ function content_complete_block($op = 'list', $delta = 0, $edit = array()) {
               $block['content'] = theme('content_complete_profile_percent_complete', $complete);
             }
           }
-        }  
+        } 
+        // Block per content type displaying completeness for the first node only (legacy)
+        else {
+          $type = $delta;
+          
+          if (variable_get('content_complete_'. $type, 0)) {
+            // Query the first node only.
+            $nid = db_result(db_query("SELECT nid FROM {node} WHERE type = '%s' LIMIT 1", $type));
+            $node = node_load($nid);
+            $complete = content_complete_get_data($node);
+            $types = content_complete_get_enabled_types();
+            
+            if (!empty($complete) && $complete['percent'] != 100) {
+              $block['subject'] = t('!name', array('!name' => $types[$type]));
+              $block['content'] = theme('content_complete_profile_percent_complete', $complete);
+            }
+          } 
+        }
         return $block;
       case 'configure':
         $form['content_complete_hide_block'] = array(
