@@ -311,7 +311,7 @@ function content_complete_get_data($node) {
   // Update the cache.
   $completeness = db_result(db_query('SELECT completeness FROM {content_complete} WHERE nid = %d', $node->nid));
   // If there is no cache we build it
-  if (empty($completeness)) {
+  if ($completeness === FALSE) {
     db_query('INSERT INTO {content_complete} SET nid = %d, completeness = %d', $node->nid, $data['percent']);
   }
     

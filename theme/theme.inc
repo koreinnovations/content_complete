@@ -31,7 +31,7 @@ function theme_content_complete_profile_percent_complete($complete_data) {
   // add CSS for theming
   drupal_add_css(drupal_get_path('module', 'content_complete') .'/content_complete.css');
   
-  $output .= '<div id="cck-complete-wrapper" class="cck-complete-wrapper">';
+  $output .= '<div id="content-complete-wrapper" class="content-complete-complete-wrapper">';
   
   if (isset($complete_data['nextpercent'])) {
     $output .= t('!complete% complete', array(
@@ -46,8 +46,8 @@ function theme_content_complete_profile_percent_complete($complete_data) {
     $complete_data['leq_percent']+=25;
   }  
 
-  $output .= '<div id="cck-complete-percent-bar-wrapper" class="cck-complete-percent-bar-wrapper">';
-  $output .= '<div id="cck-complete-percent-bar" class="cck-complete-percent-bar cck-complete-percent-bar-leq-'. $complete_data['leq_percent'] .' cck-complete-percent-bar-'. $complete_data['percent'] .'" style="width: '. $complete_data['percent'] .'%"></div>';
+  $output .= '<div id="content-complete-percent-bar-wrapper" class="content-complete-percent-bar-wrapper">';
+  $output .= '<div id="content-complete-percent-bar" class="content-complete-percent-bar content-complete-percent-bar-leq-'. $complete_data['leq_percent'] .' content-complete-percent-bar-'. $complete_data['percent'] .'" style="width: '. $complete_data['percent'] .'%"></div>';
   $output .= '</div>';
   $output .= '</div>';
 
