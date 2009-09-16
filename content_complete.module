@@ -456,7 +456,7 @@ function content_complete_get_fields($content_type) {
   $type = $types[$content_type];
   $ignore = content_complete_get_ignore_fields();
   $fields = array();
-  
+    
   /**
    * Add default fields such as node title and body 
    * that do not belong to CCK but might be checked anyway.

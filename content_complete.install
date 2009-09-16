@@ -48,11 +48,11 @@ function content_complete_schema() {
  */
 function content_complete_uninstall() {
   drupal_uninstall_schema('content_complete');
-  variable_delete('content_complete_hide_complete');
+  variable_del('content_complete_hide_complete');
   
   foreach (array_keys(content_complete_get_enabled_types()) as $type) {
-    variable_delete('content_complete_'. $type);
-    variable_delete('content_complete_fields_'. $type);
+    variable_del('content_complete_'. $type);
+    variable_del('content_complete_fields_'. $type);
   }
 }
 
