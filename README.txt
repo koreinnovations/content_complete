@@ -70,8 +70,24 @@ CCK.
   nodes of type "page" the content complete percentage will be shown, but the quick
   edit links will be hidden.
 
-* Customize the settings in Administer >> Site Configuration >> Content Complete.
-  A block will be created for every content type added to check for completeness.
+* Enable completeness checks per content types. Go to Content Management >> 
+  Content Types, and click 'edit' on the content type you wish to enable 
+  completeness for. Go to 'Content complete' and select 'Enabled' together
+  with the fields you would like to have included in the completeness checks.
+  
+* Several blocks are made available:
+ 
+  - Content Complete: Node Completeness. 
+    Can be used to show the completeness for the current node (works for any 
+    enabled content type). The block will only appear in node context
+    
+  - Content Complete: *type name* (First Node).
+    For each content type this block will be provided. It will show the
+    completeness for the first node of that type the user has edit permissions
+    for, or in the case of Content Profile, the current node associated with
+    the user.
+    
+  Note that those blocks can also be created using views, and views arguments.
   
 * Rules integration is provided with a rule "Content Complete % is >= than x". To learn
   more about rules, please see http://drupal.org/project/rules
@@ -87,12 +103,22 @@ CCK.
 The block output can be entirely overridden in your template files. 
 Check content_complete.module for more information.
 
+-- FAQ --
+
+Q: My completeness values are not correct.
+A: Try cleaning the completeness cache, go to Content Management >> Content Complete
+   and click 'Rebuild cache'.
+
 -- CONTACT --
 
 Current maintainers:
 * Peter Vanhee (pvhee) - http://drupal.org/user/108811
+* Ronan Berder (hunvreus) - http://drupal.org/user/49057
 
 This project has been sponsored by:
 * Youth Agora
   Innovating online youth information. 
   Visit http://www.youthagora.org for more information.
+  
+Version 1.2 has partially been sponsored by:
+* The Ottawa Hospital Cancer Centre Breast Cancer Disease Site Group
