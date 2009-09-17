@@ -30,7 +30,7 @@
 function theme_content_complete_profile_percent_complete($complete_data) {  
   // add CSS for theming
   drupal_add_css(drupal_get_path('module', 'content_complete') .'/content_complete.css');
-  
+    
   $output .= '<div id="content-complete-wrapper" class="content-complete-complete-wrapper">';
   
   if (isset($complete_data['nextpercent'])) {

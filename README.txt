@@ -68,7 +68,7 @@ CCK.
   Note that the content complete block depends on the actual permissions of the 
   viewing user. For example, if the user does not have the permission to edit 
   nodes of type "page" the content complete percentage will be shown, but the quick
-  edit links will be hidden [this might change in a future release].
+  edit links will be hidden.
 
 * Customize the settings in Administer >> Site Configuration >> Content Complete.
   A block will be created for every content type added to check for completeness.

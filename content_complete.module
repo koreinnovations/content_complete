@@ -69,7 +69,9 @@ function content_complete_block($op = 'list', $delta = 0, $edit = array()) {
       case 'view':
         // Single node completeness (only displayed on full page view of the node)
         if ($delta == 'content_complete_node' && arg(0) == 'node' && is_numeric(arg(1))) {
-          $node = menu_get_object();
+          $node_menu = menu_get_object();
+          // Load a fresh copy of the node that does not have all fields completed yet (e.g. body, book, ..)
+          $node = node_load($node_menu->nid);
           
           if (variable_get('content_complete_'. $node->type, 0)) {
             $complete = content_complete_get_data($node);
@@ -307,7 +309,7 @@ function content_complete_get_data($node) {
   else {
     $data['edit'] = FALSE;
   }
-  
+    
   // Update the cache.
   $completeness = db_result(db_query('SELECT completeness FROM {content_complete} WHERE nid = %d', $node->nid));
   // If there is no cache we build it
