@@ -53,15 +53,15 @@ function content_complete_block($op = 'list', $delta = 0, $edit = array()) {
       case 'list':
         $blocks = array();
     
-        // Block for completeness of a specific node.
-        $blocks['content_complete_node']['info'] = t('Content Complete: Node Completeness');
+        // Block for completeness of the current node.
+        $blocks['content_complete_node']['info'] = t('Content Complete: current node');
         $blocks['content_complete_node']['cache'] = BLOCK_NO_CACHE;
         
         // Blocks for completeness of the first node of a Content-Complete-enabled type.
         // This is kept for legacy, soon to be replaced with views.
         $types = content_complete_get_enabled_types();
         foreach ($types as $type => $name) {
-          $blocks[$type]['info'] = t('Content Complete: !name (First Node)', array('!name' => $name));
+          $blocks[$type]['info'] = t('Content Complete: !name (first node)', array('!name' => $name));
           $blocks[$type]['cache'] = BLOCK_NO_CACHE;
         }
                 
@@ -78,7 +78,7 @@ function content_complete_block($op = 'list', $delta = 0, $edit = array()) {
                       
             if (!empty($complete) && 
               ($complete['percent'] != 100 || ($complete['percent'] == 100 && !variable_get('content_complete_hide_complete', TRUE)))) {
-              $block['subject'] = t('Node Completeness');
+              $block['subject'] = t('Content Complete: current node');
               $block['content'] = theme('content_complete_profile_percent_complete', $complete);
             }
           }
@@ -138,7 +138,7 @@ function content_complete_form_alter(&$form, $form_state, $form_id) {
   }
   
   // Intercept all node edit forms and highlight field to be completed
-  if (arg(2) == 'edit' && strpos($form_id, 'node_form') !== FALSE && $_GET['content_complete_fieldname'] != '') {
+  if (empty($form_state['post']) && arg(2) == 'edit' && strpos($form_id, 'node_form') !== FALSE && $_GET['content_complete_fieldname'] != '') {
     $fieldname = $_GET['content_complete_fieldname'];
     form_set_error($fieldname, t('Please complete the fields.'));
   }
