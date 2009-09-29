@@ -245,7 +245,7 @@ function content_complete_content_field_remove_form_submit($form, &$form_state) 
  *   An array of fields such as percentage complete, next field to be
  *   completed etc.
  */
-function content_complete_get_data($node) {  
+function content_complete_get_data(&$node) {  
   $fields = content_complete_get_fields($node->type); // Grab all fields for that content type
   $tagged_fields = variable_get('content_complete_fields_'. $node->type, array()); // Fields tagged for completeness (can be empty)
   $fields_values = content_complete_get_fields_values($node); // Completed fields (can be empty)
@@ -337,22 +337,22 @@ function content_complete_get_data($node) {
  * using the provided views plugins.
  */
 function content_complete_find_node_without_context($type, &$user) { 
-  if (module_exists('content_profile') && is_content_profile($type)) {
-     $sql = "SELECT n.nid FROM {node} n WHERE type = '%s' AND uid = %d";
-     return db_result(db_query_range($sql, $type, $user->uid, 0, 1));
-   }
-   // get first node of this cck type the user has edit permissions for
-   else if (user_access('edit any '. $type .' content')) {
-     $sql = "SELECT n.nid FROM {node} n WHERE type = '%s'";
-     return db_result(db_query_range($sql, $type, 0, 1));
-   } 
-   else if (user_access('edit own '. $type .' content')) {
-     $sql = "SELECT n.nid FROM {node} n WHERE type = '%s' AND uid = %d";
-     return db_result(db_query_range($sql, $type, $user->uid, 0, 1));
-   } 
-   else {
-     return FALSE;
-   }
+  if (module_exists('content_profile') && is_content_profile($type)) {    
+    $sql = "SELECT n.nid FROM {node} n WHERE type = '%s' AND uid = %d";
+    return db_result(db_query_range($sql, $type, $user->uid, 0, 1));
+  }
+  // get first node of this cck type the user has edit permissions for
+  else if (user_access('edit any '. $type .' content')) {
+    $sql = "SELECT n.nid FROM {node} n WHERE type = '%s'";
+    return db_result(db_query_range($sql, $type, 0, 1));
+  } 
+  else if (user_access('edit own '. $type .' content')) {
+    $sql = "SELECT n.nid FROM {node} n WHERE type = '%s' AND uid = %d";
+    return db_result(db_query_range($sql, $type, $user->uid, 0, 1));
+  } 
+  else {
+    return FALSE;
+  }
 }
 
 /**

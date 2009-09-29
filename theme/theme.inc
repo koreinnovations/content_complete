@@ -44,7 +44,11 @@ function theme_content_complete_profile_percent_complete($complete_data) {
   while ($complete_data['leq_percent']<=100) {
     if ($complete_data['percent'] <= $complete_data['leq_percent']) break;
     $complete_data['leq_percent']+=25;
-  }  
+  }
+  
+  if (!isset($complete_data['percent'])) {
+    $complete_data['percent'] = 0; // protect against unset values
+  }
 
   $output .= '<div id="content-complete-percent-bar-wrapper" class="content-complete-percent-bar-wrapper">';
   $output .= '<div id="content-complete-percent-bar" class="content-complete-percent-bar content-complete-percent-bar-leq-'. $complete_data['leq_percent'] .' content-complete-percent-bar-'. $complete_data['percent'] .'" style="width: '. $complete_data['percent'] .'%"></div>';

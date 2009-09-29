@@ -10,10 +10,9 @@ class content_complete_views_handler_field_completeness extends views_handler_fi
 
   function option_definition() {
     $options = parent::option_definition();
-
-    $options['prefix'] = array('default' => '', 'translatable' => TRUE);
-    $options['suffix'] = array('default' => '', 'translatable' => TRUE);
-    $options['display_as'] = array('default' => 'numeric', 'translatable' => TRUE);
+    
+    $options['next'] = array('default' => FALSE, 'translatable' => TRUE);
+    $options['display_as'] = array('default' => 'numeric', 'translatable' => TRUE);    
     
     return $options;
   }
@@ -29,31 +28,15 @@ class content_complete_views_handler_field_completeness extends views_handler_fi
     	  'bar' => t('Bar'),
     	),
       '#default_value' => $this->options['display_as'],
-      '#description' => t('Choose how to display the number of runs.'),
+      '#description' => t('Choose how to display the percentage.'),
     );
     
-    $form['advanced_settings'] = array(
-      '#title' => t('Advanced Settings'),
-      '#type' => 'fieldset',
-      '#description' => t('This settings will be applied if the data will be shown in "Numeric" or "Percentage" form.'),
-      '#collapsible' => TRUE, 
-      '#collapsed' => FALSE,   
-    );
-    
-    $form['advanced_settings']['prefix'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Prefix'),
-      '#size' => 30,
-      '#default_value' => $this->options['prefix'],
-      '#description' => t('Text to put before the number of runs.'),
-    );
-    $form['advanced_settings']['suffix'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Suffix'),
-      '#size' => 30,
-      '#default_value' => $this->options['suffix'],
-      '#description' => t('Text to put after the number of runs.'),
-    );  
+    $form['next'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Show next link.'),
+      '#default_value' => $this->options['next'],
+      '#description' => t('If checked, a message with a the next percent and a link to the page to complete this will be shown.'),
+    );    
   }
 	
   /**
@@ -65,14 +48,22 @@ class content_complete_views_handler_field_completeness extends views_handler_fi
     $this->add_additional_fields();
   }	
 	
-  function render($values) {    
-    $data['percent'] = $values->content_complete_completeness;
+  function render($values) {     
+    $data['percent'] = $values->{$this->field_alias};
+    
     switch ($this->options['display_as']) {
       default:
       case 'numeric':
-    	  return check_plain($this->options['advanced_settings']['prefix'] . $data['percent'] . $this->options['advanced_settings']['suffix']);
+    	  return check_plain($data['percent']);
     	break;
     	case 'bar':
+    	  // Render a separate message next to it.
+        // TODO: cache in database and make separate field handlers    
+        if ($this->options['next']) {
+          $nid = $values->nid;
+          $node = node_load($nid);
+          $data = content_complete_get_data($node); // overwrite data array with values computed on the fly
+        }
     	  return theme('content_complete_profile_percent_complete', $data);
       break;    	
     }
