@@ -249,7 +249,7 @@ function content_complete_get_data(&$node) {
   $fields = content_complete_get_fields($node->type); // Grab all fields for that content type
   $tagged_fields = variable_get('content_complete_fields_'. $node->type, array()); // Fields tagged for completeness (can be empty)
   $fields_values = content_complete_get_fields_values($node); // Completed fields (can be empty)
-    
+      
   $percent = 0;
   $complete = 0;
   $incomplete = 0;
@@ -257,12 +257,12 @@ function content_complete_get_data(&$node) {
   $nextfield_set = FALSE;
   
   // Compare the two arrays and compute percentages etc.
-  foreach ($tagged_fields as $key => $value) {
-    if ($fields_values[$value] == '') { // Empty field
+  foreach ($tagged_fields as $tagged_field) {
+    if ($fields_values[$tagged_field] == '') { // Empty field
       if ($nextfield_set === FALSE) {
         $nextfield_set = TRUE;
-        $nextfield = $fields[$value]['label'];
-        $nextname = $value;
+        $nextfield = $fields[$tagged_field]['label'];
+        $nextname = $tagged_field;
       }
     }
     else {
