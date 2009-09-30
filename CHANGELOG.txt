@@ -6,7 +6,8 @@ Content Complete 1.2, ?
 - Settings are stored along with the content type instead of in a separate
   table
 - Completeness values are cached in the database
-- Views integration to retrieve completeness per node
+- Views integration to retrieve completeness per node + style plugin to 
+  compute completeness over a series of nodes
 - Batch API integration to rebuild cache
 - To rebuild the cache, go to the settings menu at 
   admin/content/content_complete
