@@ -208,9 +208,12 @@ function content_complete_form_alter(&$form, $form_state, $form_id) {
 function content_complete_node_type_delete_confirm_submit($form, &$form_state) {
   if (isset($form['type']['#value'])) {
     $type = $form['type']['#value'];
-    variable_del('content_complete_'. $type);
-    variable_del('content_complete_fields_'. $type);
-    db_query("DELETE FROM {content_complete} c INNER JOIN {node} n ON c.nid = n.nid WHERE n.type = '%s'", $type);
+    
+    if (content_complete_enabled_type($type)) {
+      variable_del('content_complete_'. $type);
+      variable_del('content_complete_fields_'. $type);
+      db_query("DELETE FROM {content_complete} c USING {content_complete} c INNER JOIN {node} n ON c.nid = n.nid WHERE n.type = '%s'", $type);
+    }
   }
 }
 
@@ -223,13 +226,23 @@ function content_complete_node_type_delete_confirm_submit($form, &$form_state) {
 function content_complete_content_field_remove_form_submit($form, &$form_state) {
   if (isset($form['type_name']['#value']) && isset($form['field_name']['#value'])) {
     $type = $form['type_name']['#value'];
-    $field_name = $form['field_name']['#value'];
-    $fields = variable_get('content_complete_fields_'. $type, array());
-    for ($i = 0; $i < count(fields); $i++) {
-      if ($fields[$i] == $field_name) unset($fields[$i]);
+    
+    if (content_complete_enabled_type($type)) {
+      $field_name = $form['field_name']['#value'];
+      $fields = variable_get('content_complete_fields_'. $type, array());
+      
+      $nr_fields = count($fields);      
+      for ($i = 0; $i < $nr_fields; $i++) {
+        if ($fields[$i] == $field_name) unset($fields[$i]);
+      }
+      
+      // a content complete enabled field has been deleted: remove from database and clean cache
+      if (count($fields) < $nr_fields) {
+        variable_set('content_complete_fields_'. $type, $fields);
+        db_query("DELETE FROM {content_complete} c USING {content_complete} c INNER JOIN {node} n ON c.nid = n.nid WHERE n.type = '%s'", $type);
+        drupal_set_message(t('A field enabled for content completion has been deleted. You need to <a href="@cache">rebuild your cache</a> to reflect the correct completion percentage.', array('@cache' => url('admin/content/content_complete'))), 'warning');
+      }
     }
-    variable_get('content_complete_fields_'. $type, $fields);
-    db_query("DELETE FROM {content_complete} c INNER JOIN {node} n ON c.nid = n.nid WHERE n.type = '%s'", $type);
   }
 }
 
@@ -255,7 +268,7 @@ function content_complete_get_data(&$node) {
   $incomplete = 0;
   $total = 0;
   $nextfield_set = FALSE;
-  
+
   // Compare the two arrays and compute percentages etc.
   foreach ($tagged_fields as $tagged_field) {
     if ($fields_values[$tagged_field] == '') { // Empty field
