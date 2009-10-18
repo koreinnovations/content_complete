@@ -97,7 +97,8 @@ function content_complete_block($op = 'list', $delta = 0, $edit = array()) {
               $complete = content_complete_get_data($node);
               $types = content_complete_get_enabled_types();
             
-              if (!empty($complete) && $complete['percent'] != 100) {
+              if (!empty($complete) &&
+                ($complete['percent'] != 100 || ($complete['percent'] == 100 && !variable_get('content_complete_hide_complete', TRUE)))) {
                 $block['subject'] = t('!name', array('!name' => content_complete_tt("nodetype:type:$type:name", $types[$type])));
                 $block['content'] = theme('content_complete_profile_percent_complete', $complete);
               }
@@ -110,7 +111,7 @@ function content_complete_block($op = 'list', $delta = 0, $edit = array()) {
           '#title' => t('Hide the blocks when the percentage reaches 100%'),
           '#type' => 'checkbox',
           '#default_value' => variable_get('content_complete_hide_complete', TRUE),
-          '#description' => t('If you disable this feature, the blocks will be shown even when 100% has been reached.'),
+          '#description' => t('If you disable this feature, all the Content Complete blocks will be shown even when 100% has been reached.'),
         );
         return $form;
       case 'save':
