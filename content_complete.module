@@ -61,7 +61,7 @@ function content_complete_block($op = 'list', $delta = 0, $edit = array()) {
         // This is kept for legacy, soon to be replaced with views.
         $types = content_complete_get_enabled_types();
         foreach ($types as $type => $name) {
-          $blocks[$type]['info'] = t('Content Complete: !name (first node)', array('!name' => $name));
+          $blocks[$type]['info'] = t('Content Complete: !name (first node)', array('!name' => content_complete_tt("nodetype:type:$type:name", $name)));
           $blocks[$type]['cache'] = BLOCK_NO_CACHE;
         }
                 
@@ -98,7 +98,7 @@ function content_complete_block($op = 'list', $delta = 0, $edit = array()) {
               $types = content_complete_get_enabled_types();
             
               if (!empty($complete) && $complete['percent'] != 100) {
-                $block['subject'] = t('!name', array('!name' => $types[$type]));
+                $block['subject'] = t('!name', array('!name' => content_complete_tt("nodetype:type:$type:name", $types[$type])));
                 $block['content'] = theme('content_complete_profile_percent_complete', $complete);
               }
             }
@@ -310,12 +310,7 @@ function content_complete_get_data(&$node) {
   $data['type'] = $node->type;
   
   // Put human readble name.
-  if (module_exists('i18ncontent')) {
-    $data['name'] = tt("nodetype:type:$node->type:name", $type_names[$node->type]);
-  }
-  else {
-    $data['name'] = $type_names[$node->type];
-  }
+  $data['name'] = content_complete_tt("nodetype:type:$node->type:name", $type_names[$node->type]);
   
   // See who has edit permissions, depending on this we show/hide the edit links
   global $user;
@@ -538,6 +533,18 @@ function content_complete_get_fields($content_type) {
   }
   
   return $fields;
+}
+
+/**
+ * Wrapper function for tt() if i18nstrings enabled.
+ */
+function content_complete_tt($name, $string, $langcode = NULL, $update = FALSE) {
+  if (module_exists('i18ncontent')) {
+    return tt($name, $string, $langcode, $update);
+  }
+  else {
+    return $string;
+  }
 }
 
 /**
