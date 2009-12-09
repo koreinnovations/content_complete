@@ -84,10 +84,12 @@ function content_complete_update_6002() {
     $field = $item['field_name'];
     $groups[$type][] = $field;
   }
-    
-  foreach ($groups as $type => $fields) {
-    variable_set('content_complete_'. $type, 1);
-    variable_set('content_complete_fields_'. $type, $fields);
+  
+  if (!empty($groups)) {  
+    foreach ($groups as $type => $fields) {
+      variable_set('content_complete_'. $type, 1);
+      variable_set('content_complete_fields_'. $type, $fields);
+    }
   }
   
   // Uninstall the previous database table
