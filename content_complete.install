@@ -33,6 +33,11 @@ function content_complete_schema() {
         'default' => 0,
         'description' => t('Completeness of this node.')
       ),
+      'data' => array(
+        'type' => 'text',
+        'size' => 'big',
+        'description' => t('Data regarding node completeness')
+      ),
     ),
     'primary key' => array('nid'),
     'indexes' => array(
@@ -107,6 +112,23 @@ function content_complete_update_6002() {
       '@rules' => url('rules/trigger'),
     )
   ));
+  
+  return $ret;
+}
+
+/**
+ * Add data column to cache completeness data
+ */ 	 
+function content_complete_update_6003() {
+  $ret = array();
+  
+  $field_def = array (
+    'type' => 'text',
+    'size' => 'big',
+    'description' => t('Data regarding node completeness')
+  );
+  
+  db_add_field($ret, 'content_complete','data',$field_def);
   
   return $ret;
 }

@@ -249,87 +249,97 @@ function content_complete_content_field_remove_form_submit($form, &$form_state) 
 
 /**
  * Get the content complete percentage data for a given node or a whole content type.
+ * All data is cached and recalculated only on demand.
  * 
  * TODO: refactor part of this code into the preprocess function, see theme.inc
  *
  * @see theme_content_complete_profile_percent_complete()
  * @param $node
  *   The node object to calculate completion for.
+ * @param $recalculate
+ *   Recalculates the cached data.
  * @return 
  *   An array of fields such as percentage complete, next field to be
  *   completed etc.
  */
-function content_complete_get_data(&$node) {  
-  $fields = content_complete_get_fields($node->type); // Grab all fields for that content type
-  $tagged_fields = variable_get('content_complete_fields_'. $node->type, array()); // Fields tagged for completeness (can be empty)
-  $fields_values = content_complete_get_fields_values($node); // Completed fields (can be empty)
-      
-  $percent = 0;
-  $complete = 0;
-  $incomplete = 0;
-  $total = 0;
-  $nextfield_set = FALSE;
-
-  // Compare the two arrays and compute percentages etc.
-  foreach ($tagged_fields as $tagged_field) {
-    if ($fields_values[$tagged_field] == '') { // Empty field
-      if ($nextfield_set === FALSE) {
-        $nextfield_set = TRUE;
-        $nextfield = $fields[$tagged_field]['label'];
-        $nextname = $tagged_field;
+function content_complete_get_data(&$node, $recalculate = FALSE) {
+  
+  $data_raw = db_result(db_query("SELECT data from {content_complete} WHERE nid = %d"));
+  
+  // If there is data and we are not being asked to recalculate, then just used the cached values
+  if ($data_raw && !$recalculate) {
+    $data = unserialize($raw_data);
+  }
+  // Else recalcualte the completeness data
+  else {
+    $fields = content_complete_get_fields($node->type); // Grab all fields for that content type
+    $tagged_fields = variable_get('content_complete_fields_'. $node->type, array()); // Fields tagged for completeness (can be empty)
+    $fields_values = content_complete_get_fields_values($node); // Completed fields (can be empty)
+    
+    $percent = 0;
+    $complete = 0;
+    $incomplete = 0;
+    $total = 0;
+    $nextfield_set = FALSE;
+    
+    // Compare the two arrays and compute percentages etc.
+    foreach ($tagged_fields as $tagged_field) {
+      if ($fields_values[$tagged_field] == '') { // Empty field
+        if ($nextfield_set === FALSE) {
+          $nextfield_set = TRUE;
+          $nextfield = $fields[$tagged_field]['label'];
+          $nextname = $tagged_field;
+        }
+      }
+      else {
+        $complete++;
       }
     }
-    else {
-      $complete++;
+    
+    $dec = 0;
+    if (count($tagged_fields)) {
+      $dec = number_format(($complete / count($tagged_fields)), 2);
     }
+    $percent = $dec * 100;
+    if ($nextfield_set) {
+      $next = number_format((($complete + 1) / count($tagged_fields)), 2);
+      $nextpercent = $next * 100;
+    }
+    
+    $incomplete = count($tagged_fields) - $complete;
+    $total = count($tagged_fields);
+    $nid = $fields_values['nid'];
+    $type_names = node_get_types('names');
+    
+    $data = array();
+    $data['nid'] = $nid;
+    $data['percent'] = $percent;
+    $data['completed'] = $complete;
+    $data['incomplete'] = $incomplete;
+    $data['total'] = $total;
+    $data['nextfield'] = t($nextfield);
+    $data['nextpercent'] = $nextpercent;
+    $data['nextname'] = $nextname;
+    $data['type'] = $node->type;
+    
+    // Put human readble name.
+    $data['name'] = content_complete_tt("nodetype:type:$node->type:name", $type_names[$node->type]);
+    
+    // Update the cache
+    db_query("DELETE FROM {content_complete} WHERE nid = %d", $node->nid);
+    db_query("INSERT INTO {content_complete} SET nid = %d, completeness = %d, data = '%s' ", $node->nid, $data['percent'], serialize($data));
   }
-  
-  $dec = 0;
-  if (count($tagged_fields)) {
-    $dec = number_format(($complete / count($tagged_fields)), 2);
-  }
-  $percent = $dec * 100;
-  if ($nextfield_set) {
-    $next = number_format((($complete + 1) / count($tagged_fields)), 2);
-    $nextpercent = $next * 100;
-  }
-  
-  $incomplete = count($tagged_fields) - $complete;
-  $total = count($tagged_fields);
-  $nid = $fields_values['nid'];
-  $type_names = node_get_types('names');
-  
-  $data = array();
-  $data['nid'] = $nid;
-  $data['percent'] = $percent;
-  $data['completed'] = $complete;
-  $data['incomplete'] = $incomplete;
-  $data['total'] = $total;
-  $data['nextfield'] = t($nextfield);
-  $data['nextpercent'] = $nextpercent;
-  $data['nextname'] = $nextname;
-  $data['type'] = $node->type;
-  
-  // Put human readble name.
-  $data['name'] = content_complete_tt("nodetype:type:$node->type:name", $type_names[$node->type]);
   
   // See who has edit permissions, depending on this we show/hide the edit links
   global $user;
   if (user_access('edit any '. $node->type .' content') || 
      (user_access('edit own '. $node->type .' content') && $node->uid == $user->uid)) {
     $data['edit'] = TRUE;
-  } 
+  }
   else {
     $data['edit'] = FALSE;
   }
-    
-  // Update the cache.
-  $completeness = db_result(db_query('SELECT completeness FROM {content_complete} WHERE nid = %d', $node->nid));
-  // If there is no cache we build it
-  if ($completeness === FALSE) {
-    db_query('INSERT INTO {content_complete} SET nid = %d, completeness = %d', $node->nid, $data['percent']);
-  }
-    
+  
   return $data;
 }
 
@@ -373,8 +383,7 @@ function content_complete_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
       case 'insert':
       case 'update':
         // Recalculate the cache
-        db_query('DELETE FROM {content_complete} WHERE nid = %d', $node->nid);
-        content_complete_get_data($node);
+        content_complete_get_data($node, TRUE);
         break;
 
       case 'delete':

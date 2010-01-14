@@ -58,11 +58,10 @@ class content_complete_views_handler_field_completeness extends views_handler_fi
     	break;
     	case 'bar':
     	  // Render a separate message next to it.
-        // TODO: cache in database and make separate field handlers    
         if ($this->options['next']) {
           $nid = $values->nid;
           $node = node_load($nid);
-          $data = content_complete_get_data($node); // overwrite data array with values computed on the fly          
+          $data = content_complete_get_data($node);       
       }
     	  return theme('content_complete_profile_percent_complete', $data);
       break;    	
