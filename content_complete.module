@@ -262,13 +262,12 @@ function content_complete_content_field_remove_form_submit($form, &$form_state) 
  *   An array of fields such as percentage complete, next field to be
  *   completed etc.
  */
-function content_complete_get_data(&$node, $recalculate = FALSE) {
-  
-  $data_raw = db_result(db_query("SELECT data from {content_complete} WHERE nid = %d"));
+function content_complete_get_data(&$node, $recalculate = FALSE) {  
+  $data_raw = db_result(db_query("SELECT data from {content_complete} WHERE nid = %d", $node->nid));
   
   // If there is data and we are not being asked to recalculate, then just used the cached values
   if ($data_raw && !$recalculate) {
-    $data = unserialize($raw_data);
+    $data = unserialize($data_raw);
   }
   // Else recalcualte the completeness data
   else {

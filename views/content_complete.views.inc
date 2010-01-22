@@ -38,6 +38,15 @@ function content_complete_views_data() {
     ),
   );
   
+  $data['content_complete']['data'] = array(
+    'title' => t('Completeness Data'),
+    'help' => t('The completeness data of the node.'),
+    'field' => array(
+      'handler' => 'content_complete_views_handler_field_data',
+      'click sortable' => FALSE,
+    ),
+  );
+  
   $data['content_complete']['content_type'] = array(
     'title' => t('Content type'),
     'help' => t('Whether or not the content type is used for Content Complete.'),
@@ -61,6 +70,9 @@ function content_complete_views_handlers() {
     'handlers' => array(
       // field handlers
       'content_complete_views_handler_field_completeness' => array(
+        'parent' => 'views_handler_field_custom',
+      ),
+      'content_complete_views_handler_field_data' => array(
         'parent' => 'views_handler_field_custom',
       ),
       

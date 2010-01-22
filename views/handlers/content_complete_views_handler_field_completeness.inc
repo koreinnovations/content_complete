@@ -45,12 +45,12 @@ class content_complete_views_handler_field_completeness extends views_handler_fi
   function query() {
     $this->ensure_my_table();
     $this->field_alias = $this->query->add_field($this->table_alias, $this->real_field);
-    $this->add_additional_fields();
+    $this->add_additional_fields();    
   }	
 	
-  function render($values) {     
+  function render($values) {    
     $data['percent'] = $values->{$this->field_alias};
-    
+        
     switch ($this->options['display_as']) {
       default:
       case 'numeric':
@@ -61,8 +61,8 @@ class content_complete_views_handler_field_completeness extends views_handler_fi
         if ($this->options['next']) {
           $nid = $values->nid;
           $node = node_load($nid);
-          $data = content_complete_get_data($node);       
-      }
+          $data = content_complete_get_data($node);
+        }
     	  return theme('content_complete_profile_percent_complete', $data);
       break;    	
     }
