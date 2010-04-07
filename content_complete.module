@@ -213,7 +213,7 @@ function content_complete_node_type_delete_confirm_submit($form, &$form_state) {
     if (content_complete_enabled_type($type)) {
       variable_del('content_complete_'. $type);
       variable_del('content_complete_fields_'. $type);
-      db_query("DELETE FROM {content_complete} c USING {content_complete} c INNER JOIN {node} n ON c.nid = n.nid WHERE n.type = '%s'", $type);
+      db_query("DELETE FROM {content_complete} c INNER JOIN {node} n ON c.nid = n.nid WHERE n.type = '%s'", $type);
     }
   }
 }
@@ -240,7 +240,7 @@ function content_complete_content_field_remove_form_submit($form, &$form_state) 
       // a content complete enabled field has been deleted: remove from database and clean cache
       if (count($fields) < $nr_fields) {
         variable_set('content_complete_fields_'. $type, $fields);
-        db_query("DELETE FROM {content_complete} c USING {content_complete} c INNER JOIN {node} n ON c.nid = n.nid WHERE n.type = '%s'", $type);
+        db_query("DELETE FROM {content_complete} c INNER JOIN {node} n ON c.nid = n.nid WHERE n.type = '%s'", $type);
         drupal_set_message(t('A field enabled for content completion has been deleted. You need to <a href="@cache">rebuild your cache</a> to reflect the correct completion percentage.', array('@cache' => url('admin/content/content_complete'))), 'warning');
       }
     }
