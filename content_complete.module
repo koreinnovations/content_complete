@@ -272,7 +272,7 @@ function content_complete_get_data(&$node, $recalculate = FALSE) {
   // Else recalcualte the completeness data
   else {
     $fields = content_complete_get_fields($node->type); // Grab all fields for that content type
-    $tagged_fields = variable_get('content_complete_fields_'. $node->type, array()); // Fields tagged for completeness (can be empty)
+    $tagged_fields = content_complete_get_tagged_fields($node->type); // Fields tagged for completeness (can be empty)
     $fields_values = content_complete_get_fields_values($node); // Completed fields (can be empty)
     
     $percent = 0;
@@ -542,6 +542,18 @@ function content_complete_get_fields($content_type) {
   }
   
   return $fields;
+}
+
+/**
+ * Get all fields of this content type that are tagged for completion.
+ * 
+ * @param $content_type
+ *   The machine-readable name of the content type.
+ * @return
+ *   Array of fields.
+ */
+function content_complete_get_tagged_fields($content_type) {
+  return variable_get('content_complete_fields_'. $content_type, array());
 }
 
 /**
