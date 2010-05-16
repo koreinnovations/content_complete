@@ -16,6 +16,9 @@ example, you might have a 'settings' content type on your website with configura
 settings. You could show the administrator how much fields there are left to 
 complete the settings using a block.
 
+Tutorial (part 1) - "Introducing Content Complete, A CCK-based Drupal module"
+http://nuvole.org/blog/2010/apr/05/measure-node-completion-in-drupal-part-1
+
 Rules integration is provided, see below.
 
 Views integration is new since version 1.2, see below.
@@ -29,7 +32,8 @@ To submit bug reports and feature suggestions, or to track changes:
 
 -- VIEWS -- 
 
-TODO: write info for using views.
+Tutorial (part 2) - "Different Views on completion data"
+http://nuvole.org/blog/2010/apr/08/measure-node-completion-in-drupal-part-2
 
 
 -- RULES -- 
@@ -39,6 +43,8 @@ For more information about rules see http://drupal.org/project/rules. Modules wh
 provide integration with rules are listed here:
 http://groups.drupal.org/node/10270/rules-modules
 
+Tutorial (part 3) - "Setting up an editor workflow using Rules and Content Complete"
+http://nuvole.org/blog/2010/apr/12/measure-node-completion-in-drupal-part-3
 
 -- REQUIREMENTS --
 
@@ -116,7 +122,9 @@ Current maintainers:
 * Ronan Berder (hunvreus) - http://drupal.org/user/49057
 
 This project has been sponsored by:
-* Youth Agora
+* Nuvole (from 1.2 onwards)
+  http://www.nuvole.org
+* Youth Agora (until version 1.1)
   Innovating online youth information. 
   Visit http://www.youthagora.org for more information.
   

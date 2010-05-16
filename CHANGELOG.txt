@@ -1,6 +1,17 @@
 // $Id$
 
-Content Complete 1.2, ?
+Content Complete 1.3, 2010-16-05
+--------------------------------
+- fixed bug in the update procedure that occurred when content complete was not configured
+- #682972 by phayes, added caching for data array next to percentage; upgrade path provided
+- added views handler for new completeness data, and added data calculations for the views completeness plugin
+- #704464 by eMPee584, PHP_ALL
+- First unit test added, check completeness of a single node (title and body field)
+- #596978 by sinasquax, fixed problem in delete query
+- #791722 by artscoop, always set nextfield so it does not get unwanted values when no nextfield is set
+- #751796 by tedfordgif, fixed checking for emptiness of CCK fields
+
+Content Complete 1.2, 2009-18-10
 --------------------------------
 - Complete calculation per node
 - Settings are stored along with the content type instead of in a separate
