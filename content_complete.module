@@ -280,6 +280,7 @@ function content_complete_get_data(&$node, $recalculate = FALSE) {
     $incomplete = 0;
     $total = 0;
     $nextfield_set = FALSE;
+    $nextfield = '';
     
     // Compare the two arrays and compute percentages etc.
     foreach ($tagged_fields as $tagged_field) {

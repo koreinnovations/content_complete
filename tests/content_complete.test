@@ -4,6 +4,11 @@
 /**
  * @file
  * Content Complete tests.
+ * 
+ * TODO tests:
+ *  - use different CCK fields and test completeness checks
+ *  - test rules
+ *  - test views
  */
 
 /**
