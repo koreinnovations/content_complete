@@ -456,7 +456,7 @@ function content_complete_get_fields_values($node) {
         if (!isset($raw[0])) {
           $value = '';
         }
-        elseif (!$function($raw[0], $field_name)) {
+        elseif (!$function($raw[0], $field_data)) {
           $value = 'cck'; // A dummy value to flag this field has been set
         } 
         else {
