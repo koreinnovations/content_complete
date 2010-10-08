@@ -57,7 +57,7 @@ function theme_content_complete_profile_percent_complete($complete_data) {
 
   if (isset($complete_data['edit']) && $complete_data['edit'] && isset($complete_data['nextfield']) && isset($complete_data['nextpercent'])) {
     $output .= t('Filling out <i>!nextfield</i> will bring !typename to !complete%.', array(
-      '!nextfield' => l($complete_data['nextfield'], 'node/'. $complete_data['nid'] .'/edit', array(
+      '!nextfield' => l(t($complete_data['nextfield']), 'node/'. $complete_data['nid'] .'/edit', array(
         'query' => 'content_complete_fieldname='. $complete_data['nextname'] 
       )),
       '!typename' => $complete_data['name'],
