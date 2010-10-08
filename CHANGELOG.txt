@@ -1,5 +1,13 @@
 // $Id$
 
+Content Complete 1.4, 2010-08-10
+--------------------------------
+- Note: this will be the last D6 release of Content Complete; all new development will be for D7 only;
+  there might still be bug fix releases or releases with back-ports from D7
+- #898532 - checked if array parameters exist in node type
+- #893896 by Urme, fixed bug in nextfield translation
+- #860668 by WorldFallz, added complete/incomplete views filter
+
 Content Complete 1.3, 2010-16-05
 --------------------------------
 - fixed bug in the update procedure that occurred when content complete was not configured
