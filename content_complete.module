@@ -595,3 +595,4 @@ function content_complete_views_api() {
     'path' => drupal_get_path('module', 'content_complete') .'/views',
   );
 }
+
