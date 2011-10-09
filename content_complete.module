@@ -65,6 +65,7 @@ function content_complete_block($op = 'list', $delta = 0, $edit = array()) {
 
       return $blocks;
     case 'view':
+      $block = array();
       if (user_access('access content complete')) {
         // Single node completeness (only displayed on full page view of the node)
         if ($delta == 'content_complete_node' && arg(0) == 'node' && is_numeric(arg(1))) {
