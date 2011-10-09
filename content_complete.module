@@ -213,7 +213,7 @@ function content_complete_node_type_delete_confirm_submit($form, &$form_state) {
     if (content_complete_enabled_type($type)) {
       variable_del('content_complete_'. $type);
       variable_del('content_complete_fields_'. $type);
-      db_query("DELETE FROM {content_complete} c INNER JOIN {node} n ON c.nid = n.nid WHERE n.type = '%s'", $type);
+      db_query("DELETE FROM {content_complete} WHERE nid IN (SELECT n.nid FROM {node} n WHERE n.type = '%s')", $type);
     }
   }
 }
