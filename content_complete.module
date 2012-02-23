@@ -1,4 +1,5 @@
 <?php
+// $Id: content_complete.module,v 1.1.2.43 2010/10/08 14:09:28 pvhee Exp $
 
 /**
  * @file
@@ -42,82 +43,81 @@ function content_complete_menu() {
 
 /**
  * Implementation of hook_block().
- *
+ * 
  * Show a configured block with completeness for the node. Note that this
  * can be achived in a more flexible way using the views integration.
  */
-function content_complete_block($op = 'list', $delta = 0, $edit = array()) {
-  switch ($op) {
-    case 'list':
-      $blocks = array();
-
-      // Block for completeness of the current node.
-      $blocks['content_complete_node']['info'] = t('Content Complete: current node');
-      $blocks['content_complete_node']['cache'] = BLOCK_NO_CACHE;
-
-      // Blocks for completeness of the first node of a Content-Complete-enabled type.
-      // This is kept for legacy, soon to be replaced with views.
-      $types = content_complete_get_enabled_types();
-      foreach ($types as $type => $name) {
-        $blocks[$type]['info'] = t('Content Complete: !name (first node)', array('!name' => content_complete_tt("nodetype:type:$type:name", $name)));
-        $blocks[$type]['cache'] = BLOCK_NO_CACHE;
-      }
-
-      return $blocks;
-    case 'view':
-      $block = array();
-      if (user_access('access content complete')) {
+function content_complete_block($op = 'list', $delta = 0, $edit = array()) {  
+  if (user_access('access content complete')) {
+    switch ($op) {
+      case 'list':
+        $blocks = array();
+    
+        // Block for completeness of the current node.
+        $blocks['content_complete_node']['info'] = t('Content Complete: current node');
+        $blocks['content_complete_node']['cache'] = BLOCK_NO_CACHE;
+        
+        // Blocks for completeness of the first node of a Content-Complete-enabled type.
+        // This is kept for legacy, soon to be replaced with views.
+        $types = content_complete_get_enabled_types();
+        foreach ($types as $type => $name) {
+          $blocks[$type]['info'] = t('Content Complete: !name (first node)', array('!name' => content_complete_tt("nodetype:type:$type:name", $name)));
+          $blocks[$type]['cache'] = BLOCK_NO_CACHE;
+        }
+                
+        return $blocks;
+      case 'view':
         // Single node completeness (only displayed on full page view of the node)
         if ($delta == 'content_complete_node' && arg(0) == 'node' && is_numeric(arg(1))) {
           $node_menu = menu_get_object();
           // Load a fresh copy of the node that does not have all fields completed yet (e.g. body, book, ..)
           $node = node_load($node_menu->nid);
-
+          
           if (variable_get('content_complete_'. $node->type, 0)) {
             $complete = content_complete_get_data($node);
-
-            if (!empty($complete) &&
+                      
+            if (!empty($complete) && 
               ($complete['percent'] != 100 || ($complete['percent'] == 100 && !variable_get('content_complete_hide_complete', TRUE)))) {
               $block['subject'] = t('Content Complete: current node');
               $block['content'] = theme('content_complete_profile_percent_complete', $complete);
             }
           }
-        }
+        } 
         // Block per content type displaying completeness for the first node only
         // Warning: this is kept for legacy reasons and might be removed in the next version
         else {
           $type = $delta;
-
+          
           if (variable_get('content_complete_'. $type, 0)) {
             global $user;
             $nid = content_complete_find_node_without_context($type, $user);
-
+            
             if ($nid) {
               $node = node_load($nid);
               $complete = content_complete_get_data($node);
               $types = content_complete_get_enabled_types();
-
+            
               if (!empty($complete) &&
                 ($complete['percent'] != 100 || ($complete['percent'] == 100 && !variable_get('content_complete_hide_complete', TRUE)))) {
                 $block['subject'] = t('!name', array('!name' => content_complete_tt("nodetype:type:$type:name", $types[$type])));
                 $block['content'] = theme('content_complete_profile_percent_complete', $complete);
               }
             }
-          }
+          } 
         }
-      }
-      return $block;
-    case 'configure':
-      $form['content_complete_hide_block'] = array(
-        '#title' => t('Hide the blocks when the percentage reaches 100%'),
-        '#type' => 'checkbox',
-        '#default_value' => variable_get('content_complete_hide_complete', TRUE),
-        '#description' => t('If you disable this feature, all the Content Complete blocks will be shown even when 100% has been reached.'),
-      );
-      return $form;
-    case 'save':
-      variable_set('content_complete_hide_complete', $edit['content_complete_hide_block']);
-      return;
+        return $block;
+      case 'configure':
+        $form['content_complete_hide_block'] = array(
+          '#title' => t('Hide the blocks when the percentage reaches 100%'),
+          '#type' => 'checkbox',
+          '#default_value' => variable_get('content_complete_hide_complete', TRUE),
+          '#description' => t('If you disable this feature, all the Content Complete blocks will be shown even when 100% has been reached.'),
+        );
+        return $form;
+      case 'save':
+        variable_set('content_complete_hide_complete', $edit['content_complete_hide_block']);
+        return;
+    }
   }
 }
 
@@ -169,10 +169,13 @@ function content_complete_form_alter(&$form, $form_state, $form_id) {
       
       $options = array();
       foreach ($fields as $field_name => $field_data) {
+        if($field_name != 'field_youtube_user' && $field_name !='field_twitter_user' && $field_name !='field_facebook_url' && $field_name !='field_linkedin' && 'field_business_video' && $field_name !='field_google_buzz_account_name'){
         $key = $field_name;
-        $label = $field_data['label'] ." <span class='description'>". $field_name ."</span>";
-        $options[$field_name] = $label;
+               $label = $field_data['label'] ." <span class='description'>". $field_name ."</span>";
+               $options[$field_name] = $label;
+        }
       }
+        
 
       $form['content_complete']['content_complete_fields'] = array(
         '#type' => 'checkboxes',
@@ -213,7 +216,7 @@ function content_complete_node_type_delete_confirm_submit($form, &$form_state) {
     if (content_complete_enabled_type($type)) {
       variable_del('content_complete_'. $type);
       variable_del('content_complete_fields_'. $type);
-      db_query("DELETE FROM {content_complete} WHERE nid IN (SELECT n.nid FROM {node} n WHERE n.type = '%s')", $type);
+      db_query("DELETE FROM {content_complete} c INNER JOIN {node} n ON c.nid = n.nid WHERE n.type = '%s'", $type);
     }
   }
 }
@@ -271,8 +274,12 @@ function content_complete_get_data(&$node, $recalculate = FALSE) {
   }
   // Else recalcualte the completeness data
   else {
+
+    if($node->taxonomy[24156])
+    {$listing_level = 'premium';}
+    else {$listing_level = 'ordinary';}
     $fields = content_complete_get_fields($node->type); // Grab all fields for that content type
-    $tagged_fields = content_complete_get_tagged_fields($node->type); // Fields tagged for completeness (can be empty)
+    $tagged_fields = content_complete_get_tagged_fields($node->type, $listing_level); // Fields tagged for completeness (can be empty)
     $fields_values = content_complete_get_fields_values($node); // Completed fields (can be empty)
     
     $percent = 0;
@@ -557,8 +564,27 @@ function content_complete_get_fields($content_type) {
  * @return
  *   Array of fields.
  */
-function content_complete_get_tagged_fields($content_type) {
-  return variable_get('content_complete_fields_'. $content_type, array());
+function content_complete_get_tagged_fields($content_type, $listing_level) {
+ if($listing_level == 'premium')
+  {
+   $fields_final = variable_get('content_complete_fields_'. $content_type, array());
+  }
+ else if($listing_level == 'ordinary')
+  {
+   $fields_returned = variable_get('content_complete_fields_'. $content_type, array());
+   $fields_final = array();
+   $num = count($fields_returned);
+   for($i=0;$i<=$num-1;$i++)
+    {
+     if($fields_returned[$i] != 'field_youtube_user' && $fields_returned[$i] !='field_twitter_user' && $fields_returned[$i] !='field_facebook_url' && $fields_returned[$i] !='field_linkedin' && $fields_returned[$i] !='field_business_video' && $fields_returned[$i] !='field_google_buzz_account_name')
+      {
+       $fields_final[] = $fields_returned[$i];
+      }
+    }
+   } 
+dpm($fields_final);
+ return $fields_final;
+ 
 }
 
 /**
@@ -596,4 +622,3 @@ function content_complete_views_api() {
     'path' => drupal_get_path('module', 'content_complete') .'/views',
   );
 }
-
