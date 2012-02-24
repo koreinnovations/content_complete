@@ -275,11 +275,8 @@ function content_complete_get_data(&$node, $recalculate = FALSE) {
   // Else recalcualte the completeness data
   else {
 
-    if($node->taxonomy[24156])
-    {$listing_level = 'premium';}
-    else {$listing_level = 'ordinary';}
     $fields = content_complete_get_fields($node->type); // Grab all fields for that content type
-    $tagged_fields = content_complete_get_tagged_fields($node->type, $listing_level); // Fields tagged for completeness (can be empty)
+    $tagged_fields = content_complete_get_tagged_fields($node); // Fields tagged for completeness (can be empty)
     $fields_values = content_complete_get_fields_values($node); // Completed fields (can be empty)
     
     $percent = 0;
@@ -564,27 +561,17 @@ function content_complete_get_fields($content_type) {
  * @return
  *   Array of fields.
  */
-function content_complete_get_tagged_fields($content_type, $listing_level) {
- if($listing_level == 'premium')
-  {
-   $fields_final = variable_get('content_complete_fields_'. $content_type, array());
-  }
- else if($listing_level == 'ordinary')
-  {
-   $fields_returned = variable_get('content_complete_fields_'. $content_type, array());
-   $fields_final = array();
-   $num = count($fields_returned);
-   for($i=0;$i<=$num-1;$i++)
-    {
-     if($fields_returned[$i] != 'field_youtube_user' && $fields_returned[$i] !='field_twitter_user' && $fields_returned[$i] !='field_facebook_url' && $fields_returned[$i] !='field_linkedin' && $fields_returned[$i] !='field_business_video' && $fields_returned[$i] !='field_google_buzz_account_name')
-      {
-       $fields_final[] = $fields_returned[$i];
-      }
-    }
-   } 
-dpm($fields_final);
- return $fields_final;
- 
+function content_complete_get_tagged_fields($node) {
+
+$fields_final = variable_get('content_complete_fields_'. $node->type, array());
+
+//defines the hook_content_complete_alter_data.
+foreach(module_implements('content_complete_alter_data') as $module) {
+  $function = $module . '_content_complete_alter_data';
+   $fields_final = $function($node);
+}
+return $fields_final;
+
 }
 
 /**
