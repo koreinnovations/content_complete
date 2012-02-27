@@ -566,8 +566,8 @@ function content_complete_get_tagged_fields($node) {
 $fields_final = variable_get('content_complete_fields_'. $node->type, array());
 
 //defines the hook_content_complete_alter_data.
-foreach(module_implements('content_complete_alter_data') as $module) {
-  $function = $module . '_content_complete_alter_data';
+foreach(module_implements('content_complete_tagged_fields_alter') as $module) {
+  $function = $module . '_content_complete_tagged_fields_alter';
    $fields_final = $function($node);
 }
 return $fields_final;
